@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "274660562657",
+    "project_id": "rock-talk-89df8",
+    "storage_bucket": "rock-talk-89df8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:274660562657:android:b06708c62c7bab342509a0",
+        "android_client_info": {
+          "package_name": "com.zikkeunzikkeun.rocktalk"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "274660562657-4u3bie3gju02d22m2it6jlr05b4tvmj9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRtjncR5e_lQnHt10HNBDsq71d8OYpxNg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "274660562657-4u3bie3gju02d22m2it6jlr05b4tvmj9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
