@@ -69,10 +69,10 @@ class GoogleSignInActivity : AppCompatActivity() {
         // Instantiate a Google sign-in request
         val googleIdOption = GetGoogleIdOption.Builder()
             // Your server's client ID, not your Android client ID.
-            .setServerClientId(Strings.DEFAULT_WEB_CLIENT_ID)
             // Only show accounts previously used to sign in.
             .setFilterByAuthorizedAccounts(true)
             .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(Strings.DEFAULT_WEB_CLIENT_ID)
             .build()
 
         // Create the Credential Manager request

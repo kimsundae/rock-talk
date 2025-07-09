@@ -22,6 +22,9 @@ android {
         versionName = "1.0"
         manifestPlaceholders["KAKAO_APP_KEY"] = kakaoAppKey
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "KAKAO_APP_KEY", "\"${kakaoAppKey}\"")
+
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -45,6 +48,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -57,7 +61,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -76,12 +79,7 @@ dependencies {
     implementation("com.kakao.sdk:v2-user:2.10.0") // 카카오 로그인 API 모듈
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
-    // Add the dependency for the Firebase SDK for Google Analytics
     implementation("com.google.firebase:firebase-analytics")
-
-    // TODO: Add the dependencies for any other Firebase products you want to use
-    // See https://firebase.google.com/docs/android/setup#available-libraries
-    // For example, add the dependencies for Firebase Authentication and Cloud Firestore
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")

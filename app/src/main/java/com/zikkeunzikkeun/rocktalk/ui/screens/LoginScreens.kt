@@ -1,7 +1,9 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -24,15 +26,22 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.kakao.sdk.auth.model.OAuthToken
+import com.kakao.sdk.common.model.ClientError
+import com.kakao.sdk.common.model.ClientErrorCause
+import com.kakao.sdk.user.UserApiClient
 import com.zikkeunzikkeun.rocktalk.R
 import com.zikkeunzikkeun.rocktalk.ui.auth.GoogleSignInActivity
 import com.zikkeunzikkeun.rocktalk.ui.components.GoogleSignInButton
+import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
 
 
 @Composable
 fun LoginScreen(){
     val context = LocalContext.current
-    // 1. 결과를 받는 런처 선언
+    val configuration = LocalConfiguration.current
+    val contentWidth = configuration.screenWidthDp.dp * 0.6f // 60%
+    // 결과를 받는 런처 선언
     val loginLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -42,7 +51,14 @@ fun LoginScreen(){
             // data에서 로그인 결과 꺼내기 (예: 토큰, 사용자 정보 등)
             // 예: val token = data?.getStringExtra("id_token")
         } else {
-            // 로그인 실패, 취소 등 처리
+
+        }
+    }
+    // kakao login callback
+    val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
+        when{
+            error != null -> Log.e(null, Strings.Errors.KAKAO_ACCOUNT_LOGIN_FAIL, error)
+            token != null -> Log.i(null, "${Strings.Info.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
         }
     }
 
@@ -50,10 +66,29 @@ fun LoginScreen(){
         val intent = Intent(context, GoogleSignInActivity::class.java)
         loginLauncher.launch(intent)
     }
+    fun onClickKakaoBtn(context: Context){
+        when{
+            UserApiClient.instance.isKakaoTalkLoginAvailable(context) -> {
+                UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
+                    when{
+                        error != null -> {
+                            Log.e(null, Strings.Errors.KAKAO_LOGIN_FAIL, error)
 
-    val configuration = LocalConfiguration.current
-    val contentWidth = configuration.screenWidthDp.dp * 0.6f // 60%
+                            if (error is ClientError && error.reason == ClientErrorCause.Cancelled)
+                                return@loginWithKakaoTalk
 
+                            // 카카오톡에 연결된 카카오계정이 없는 경우, 카카오계정으로 로그인 시도
+                            UserApiClient.instance.loginWithKakaoAccount(context, callback = callback)
+                        }
+                        token != null -> {
+                            Log.i(null, "${Strings.Info.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+                        }
+                    }
+                }
+            }
+            else ->  UserApiClient.instance.loginWithKakaoAccount(context, callback = callback)
+        }
+    }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -71,7 +106,7 @@ fun LoginScreen(){
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
                     .clickable {
-
+                        onClickKakaoBtn(context)
                     },
                 contentScale = ContentScale.FillWidth
             )
@@ -82,4 +117,6 @@ fun LoginScreen(){
         }
     }
 }
+
+
 
