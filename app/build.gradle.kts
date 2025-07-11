@@ -9,6 +9,7 @@ val properties = Properties().apply {
     load(rootProject.file("local.properties").inputStream())
 }
 val kakaoAppKey = properties.getProperty("KAKAO_APP_KEY") ?: "default_value"
+val naverClientSecreatKey = properties.getProperty("NAVER_CLIENT_SECREAT_KEY") ?: "default_value"
 
 android {
     namespace = "com.zikkeunzikkeun.rocktalk"
@@ -24,6 +25,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "KAKAO_APP_KEY", "\"${kakaoAppKey}\"")
+        buildConfigField("String", "NAVER_CLIENT_SECREAT_KEY", "\"${naverClientSecreatKey}\"")
 
         vectorDrawables {
             useSupportLibrary = true
@@ -77,6 +79,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("com.kakao.sdk:v2-user:2.10.0") // 카카오 로그인 API 모듈
+    implementation("com.navercorp.nid:oauth:5.10.0") // 네이버
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
     implementation("com.google.firebase:firebase-analytics")

@@ -76,7 +76,7 @@ fun GoogleSignInButton(
                     .align(Alignment.CenterStart)
             )
             Text(
-                text = Strings.GOOGLE_LOGIN,
+                text = Strings.Text.GOOGLE_LOGIN,
                 fontFamily = FontFamily.SansSerif,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.W400,

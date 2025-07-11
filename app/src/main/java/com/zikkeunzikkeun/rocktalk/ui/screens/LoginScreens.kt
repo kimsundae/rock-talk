@@ -1,11 +1,8 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,9 +27,9 @@ import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
+import com.navercorp.nid.NaverIdLoginSDK
+import com.navercorp.nid.oauth.OAuthLoginCallback
 import com.zikkeunzikkeun.rocktalk.R
-import com.zikkeunzikkeun.rocktalk.ui.auth.GoogleSignInActivity
-import com.zikkeunzikkeun.rocktalk.ui.components.GoogleSignInButton
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
 
 
@@ -41,31 +38,15 @@ fun LoginScreen(){
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val contentWidth = configuration.screenWidthDp.dp * 0.6f // 60%
-    // 결과를 받는 런처 선언
-    val loginLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        // 4. 여기서 Activity의 결과(Intent data 등)를 받음!
-        if (result.resultCode == Activity.RESULT_OK) {
-            val data = result.data
-            // data에서 로그인 결과 꺼내기 (예: 토큰, 사용자 정보 등)
-            // 예: val token = data?.getStringExtra("id_token")
-        } else {
 
-        }
-    }
     // kakao login callback
     val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
         when{
             error != null -> Log.e(null, Strings.Errors.KAKAO_ACCOUNT_LOGIN_FAIL, error)
-            token != null -> Log.i(null, "${Strings.Info.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+            token != null -> Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
         }
     }
-
-    fun launchGoogleLoginActivity() {
-        val intent = Intent(context, GoogleSignInActivity::class.java)
-        loginLauncher.launch(intent)
-    }
+    // kakao 로그인 콜백
     fun onClickKakaoBtn(context: Context){
         when{
             UserApiClient.instance.isKakaoTalkLoginAvailable(context) -> {
@@ -81,7 +62,7 @@ fun LoginScreen(){
                             UserApiClient.instance.loginWithKakaoAccount(context, callback = callback)
                         }
                         token != null -> {
-                            Log.i(null, "${Strings.Info.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+                            Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
                         }
                     }
                 }
@@ -89,6 +70,35 @@ fun LoginScreen(){
             else ->  UserApiClient.instance.loginWithKakaoAccount(context, callback = callback)
         }
     }
+
+    // 네이버 로그인 콜백
+    fun onClickNaverBtn(context: Context) {
+        val callback = object : OAuthLoginCallback {
+            override fun onSuccess() {
+                // 로그인 성공! 토큰 등 정보 활용
+                val accessToken = NaverIdLoginSDK.getAccessToken()
+                val refreshToken = NaverIdLoginSDK.getRefreshToken()
+                val expiresAt = NaverIdLoginSDK.getExpiresAt()
+                val tokenType = NaverIdLoginSDK.getTokenType()
+                val state = NaverIdLoginSDK.getState()
+
+                // 예시: 토스트 출력 또는 ViewModel 등으로 넘기기
+                Toast.makeText(context, "네이버 로그인 성공! 토큰: $accessToken", Toast.LENGTH_SHORT).show()
+                Log.i("NaverLogin", "accessToken: $accessToken, refreshToken: $refreshToken")
+            }
+            override fun onFailure(httpStatus: Int, message: String) {
+                val errorCode = NaverIdLoginSDK.getLastErrorCode().code
+                val errorDescription = NaverIdLoginSDK.getLastErrorDescription()
+                Toast.makeText(context, "Naver 로그인 실패: $errorCode, $errorDescription", Toast.LENGTH_SHORT).show()
+                Log.e("NaverLogin", "errorCode: $errorCode, $errorDescription")
+            }
+            override fun onError(errorCode: Int, message: String) {
+                onFailure(errorCode, message)
+            }
+        }
+        NaverIdLoginSDK.authenticate(context, callback)
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -101,7 +111,7 @@ fun LoginScreen(){
         ) {
             Image(
                 painter = painterResource(id = R.drawable.kakao_login_btn),
-                contentDescription = "Kakao Login",
+                contentDescription = Strings.Text.KAKAO_LOGIN,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
@@ -110,10 +120,20 @@ fun LoginScreen(){
                     },
                 contentScale = ContentScale.FillWidth
             )
+
             Spacer(modifier = Modifier.height(5.dp))
-            GoogleSignInButton(onClick = {
-                launchGoogleLoginActivity()
-            });
+
+            Image(
+                painter = painterResource(id = R.drawable.naver_login_btn),
+                contentDescription = Strings.Text.NAVER_LOGIN,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(2.dp))
+                    .clickable {
+                        onClickNaverBtn(context);
+                    },
+                contentScale = ContentScale.FillWidth
+            )
         }
     }
 }

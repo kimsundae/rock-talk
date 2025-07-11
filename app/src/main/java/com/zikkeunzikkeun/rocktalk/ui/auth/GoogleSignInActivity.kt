@@ -72,7 +72,7 @@ class GoogleSignInActivity : AppCompatActivity() {
             // Only show accounts previously used to sign in.
             .setFilterByAuthorizedAccounts(true)
             .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(Strings.DEFAULT_WEB_CLIENT_ID)
+            .setServerClientId(Strings.Key.DEFAULT_WEB_CLIENT_ID)
             .build()
 
         // Create the Credential Manager request
