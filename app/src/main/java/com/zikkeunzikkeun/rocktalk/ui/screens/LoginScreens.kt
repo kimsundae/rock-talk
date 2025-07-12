@@ -4,16 +4,19 @@ import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +33,7 @@ import com.kakao.sdk.user.UserApiClient
 import com.navercorp.nid.NaverIdLoginSDK
 import com.navercorp.nid.oauth.OAuthLoginCallback
 import com.zikkeunzikkeun.rocktalk.R
+import com.zikkeunzikkeun.rocktalk.api.getKakaoUserInfo
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
 
 
@@ -43,7 +47,10 @@ fun LoginScreen(){
     val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
         when{
             error != null -> Log.e(null, Strings.Errors.KAKAO_ACCOUNT_LOGIN_FAIL, error)
-            token != null -> Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+            token != null -> {
+                Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+                getKakaoUserInfo(token.accessToken);
+            }
         }
     }
     // kakao 로그인 콜백
@@ -100,15 +107,38 @@ fun LoginScreen(){
     }
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .fillMaxSize()
     ) {
         Column(
             modifier = Modifier
-                .align(Alignment.Center)
-                .width(contentWidth),
-            verticalArrangement = Arrangement.Center,
+                .align(Alignment.Center) // 가로는 시작(왼쪽), 세로는 중앙!
+                .width(contentWidth)
+                .fillMaxHeight(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.rock_talk_login_logo),
+                contentDescription = Strings.Text.ROCK_TALK_LOGIN_LOGO,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(480.dp)
+                    .padding(top = 100.dp, bottom = 80.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                contentScale = ContentScale.FillBounds
+            )
+
+            Image(
+                painter = painterResource(id = R.drawable.rock_talk_login_info),
+                contentDescription = Strings.Text.ROCK_TALK_LOGIN_LOGO,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 30.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                contentScale = ContentScale.FillWidth
+            )
+
             Image(
                 painter = painterResource(id = R.drawable.kakao_login_btn),
                 contentDescription = Strings.Text.KAKAO_LOGIN,
@@ -121,7 +151,7 @@ fun LoginScreen(){
                 contentScale = ContentScale.FillWidth
             )
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.naver_login_btn),

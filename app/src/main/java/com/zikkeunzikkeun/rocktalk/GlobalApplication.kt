@@ -10,6 +10,5 @@ class GlobalApplication : Application(){
         super.onCreate()
         KakaoSdk.init(this, BuildConfig.KAKAO_APP_KEY)
         NaverIdLoginSDK.initialize(this, Strings.Key.NAVER_WEB_CLIENT_ID, BuildConfig.NAVER_CLIENT_SECREAT_KEY, Strings.Text.ROCK_TALK)
-//        Log.i(null,Utility.getKeyHash(this))
     }
 }

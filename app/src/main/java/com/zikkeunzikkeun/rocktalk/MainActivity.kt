@@ -30,10 +30,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GreetingPreview() {
     RockTalkTheme {
-        Scaffold(
-            modifier = Modifier.fillMaxSize()
-        ) {
             LoginScreen()
-        }
     }
 }

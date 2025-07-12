@@ -6,7 +6,8 @@ object Strings{
         const val ROCK_TALK = "Rock Talk";
         const val KAKAO_LOGIN = "카카오 로그인";
         const val NAVER_LOGIN = "네이버 로그인";
-        const val GOOGLE_LOGIN : String = "Google 로그인";
+        const val GOOGLE_LOGIN = "Google 로그인";
+        const val ROCK_TALK_LOGIN_LOGO = "락톡 로그인 로고"
     }
     object Key {
         const val NAVER_WEB_CLIENT_ID = "8PNuIl7XCKi4z_nLvNsM";
