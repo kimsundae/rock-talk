@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.zikkeunzikkeun.rocktalk">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 애뮬레이터 테스트 시    -->
+    <!--        android:networkSecurityConfig="@xml/network_security_config"-->
     <application
         android:name=".GlobalApplication"
         android:allowBackup="true"
@@ -42,5 +44,4 @@
             </intent-filter>
         </activity>
     </application>
-
 </manifest>

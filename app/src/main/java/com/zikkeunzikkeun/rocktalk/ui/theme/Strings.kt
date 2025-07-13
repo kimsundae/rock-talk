@@ -8,6 +8,9 @@ object Strings{
         const val NAVER_LOGIN = "네이버 로그인";
         const val GOOGLE_LOGIN = "Google 로그인";
         const val ROCK_TALK_LOGIN_LOGO = "락톡 로그인 로고"
+        const val ROCK_TALK_LOGIN_TEXT = "락톡 로그인 텍스트"
+        const val MY_PAGE = "My Page"
+        const val SAVE = "저장하기"
     }
     object Key {
         const val NAVER_WEB_CLIENT_ID = "8PNuIl7XCKi4z_nLvNsM";

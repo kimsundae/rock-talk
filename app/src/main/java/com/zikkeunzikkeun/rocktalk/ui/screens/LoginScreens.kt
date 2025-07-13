@@ -1,6 +1,5 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
-import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -9,15 +8,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +24,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause
@@ -33,77 +32,110 @@ import com.kakao.sdk.user.UserApiClient
 import com.navercorp.nid.NaverIdLoginSDK
 import com.navercorp.nid.oauth.OAuthLoginCallback
 import com.zikkeunzikkeun.rocktalk.R
-import com.zikkeunzikkeun.rocktalk.api.getKakaoUserInfo
+import com.zikkeunzikkeun.rocktalk.api.firebaseLoginWithProviderToken
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
 
 
 @Composable
-fun LoginScreen(){
+fun LoginScreen(navController: NavHostController) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
-    val contentWidth = configuration.screenWidthDp.dp * 0.6f // 60%
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
 
-    // kakao login callback
-    val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
-        when{
-            error != null -> Log.e(null, Strings.Errors.KAKAO_ACCOUNT_LOGIN_FAIL, error)
-            token != null -> {
-                Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
-                getKakaoUserInfo(token.accessToken);
-            }
-        }
-    }
-    // kakao 로그인 콜백
-    fun onClickKakaoBtn(context: Context){
-        when{
-            UserApiClient.instance.isKakaoTalkLoginAvailable(context) -> {
-                UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
-                    when{
-                        error != null -> {
-                            Log.e(null, Strings.Errors.KAKAO_LOGIN_FAIL, error)
+    val contentWidth = screenWidth * 0.7f
+    val logoHeight = screenHeight * 0.35f
+    val infoHeight = screenHeight * 0.2f
+    val buttonHeight = screenHeight * 0.07f
+    val verticalSpacing = screenHeight * 0.02f
 
-                            if (error is ClientError && error.reason == ClientErrorCause.Cancelled)
-                                return@loginWithKakaoTalk
-
-                            // 카카오톡에 연결된 카카오계정이 없는 경우, 카카오계정으로 로그인 시도
-                            UserApiClient.instance.loginWithKakaoAccount(context, callback = callback)
+    val kakaoCallback: (OAuthToken?, Throwable?) -> Unit = remember {
+        { token, error ->
+            when {
+                error != null -> Log.e(null, Strings.Errors.KAKAO_ACCOUNT_LOGIN_FAIL, error)
+                token != null -> {
+                    Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+                    firebaseLoginWithProviderToken(
+                        provider = "KAKAO",
+                        token.accessToken,
+                        onSuccess = {
+                            navController.navigate("main_screen") {
+                                popUpTo("login_screen") { inclusive = true }
+                            }
+                        },
+                        onFailure = {
+                            Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
                         }
-                        token != null -> {
-                            Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
-                        }
-                    }
+                    )
                 }
             }
-            else ->  UserApiClient.instance.loginWithKakaoAccount(context, callback = callback)
         }
     }
 
-    // 네이버 로그인 콜백
-    fun onClickNaverBtn(context: Context) {
-        val callback = object : OAuthLoginCallback {
-            override fun onSuccess() {
-                // 로그인 성공! 토큰 등 정보 활용
-                val accessToken = NaverIdLoginSDK.getAccessToken()
-                val refreshToken = NaverIdLoginSDK.getRefreshToken()
-                val expiresAt = NaverIdLoginSDK.getExpiresAt()
-                val tokenType = NaverIdLoginSDK.getTokenType()
-                val state = NaverIdLoginSDK.getState()
-
-                // 예시: 토스트 출력 또는 ViewModel 등으로 넘기기
-                Toast.makeText(context, "네이버 로그인 성공! 토큰: $accessToken", Toast.LENGTH_SHORT).show()
-                Log.i("NaverLogin", "accessToken: $accessToken, refreshToken: $refreshToken")
-            }
-            override fun onFailure(httpStatus: Int, message: String) {
-                val errorCode = NaverIdLoginSDK.getLastErrorCode().code
-                val errorDescription = NaverIdLoginSDK.getLastErrorDescription()
-                Toast.makeText(context, "Naver 로그인 실패: $errorCode, $errorDescription", Toast.LENGTH_SHORT).show()
-                Log.e("NaverLogin", "errorCode: $errorCode, $errorDescription")
-            }
-            override fun onError(errorCode: Int, message: String) {
-                onFailure(errorCode, message)
+    val onClickKakaoBtn = remember {
+        {
+            if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
+                UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
+                    if (error != null) {
+                        Log.e(null, Strings.Errors.KAKAO_LOGIN_FAIL, error)
+                        if (error is ClientError && error.reason == ClientErrorCause.Cancelled) return@loginWithKakaoTalk
+                        UserApiClient.instance.loginWithKakaoAccount(context, callback = kakaoCallback)
+                    } else if (token != null) {
+                        Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+                        firebaseLoginWithProviderToken(
+                            provider = "KAKAO",
+                            token.accessToken,
+                            onSuccess = {
+                                navController.navigate("main_screen") {
+                                    popUpTo("login_screen") { inclusive = true }
+                                }
+                            },
+                            onFailure = {
+                                Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                }
+            } else {
+                UserApiClient.instance.loginWithKakaoAccount(context, callback = kakaoCallback)
             }
         }
-        NaverIdLoginSDK.authenticate(context, callback)
+    }
+
+    val onClickNaverBtn = remember {
+        {
+            val callback = object : OAuthLoginCallback {
+                override fun onSuccess() {
+                    val accessToken = NaverIdLoginSDK.getAccessToken()
+                    Toast.makeText(context, "네이버 로그인 성공! 토큰: $accessToken", Toast.LENGTH_SHORT).show()
+                    Log.i("NaverLogin", "accessToken: $accessToken")
+                    firebaseLoginWithProviderToken(
+                        provider = "NAVER",
+                        accessToken.toString(),
+                        onSuccess = {
+                            navController.navigate("main_screen") {
+                                popUpTo("login_screen") { inclusive = true }
+                            }
+                        },
+                        onFailure = {
+                            Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+
+                override fun onFailure(httpStatus: Int, message: String) {
+                    val errorCode = NaverIdLoginSDK.getLastErrorCode().code
+                    val errorDescription = NaverIdLoginSDK.getLastErrorDescription()
+                    Toast.makeText(context, "Naver 로그인 실패: $errorCode, $errorDescription", Toast.LENGTH_SHORT).show()
+                    Log.e("NaverLogin", "errorCode: $errorCode, $errorDescription")
+                }
+
+                override fun onError(errorCode: Int, message: String) {
+                    onFailure(errorCode, message)
+                }
+            }
+            NaverIdLoginSDK.authenticate(context, callback)
+        }
     }
 
     Box(
@@ -113,9 +145,8 @@ fun LoginScreen(){
     ) {
         Column(
             modifier = Modifier
-                .align(Alignment.Center) // 가로는 시작(왼쪽), 세로는 중앙!
-                .width(contentWidth)
-                .fillMaxHeight(),
+                .align(Alignment.Center)
+                .width(contentWidth),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -123,31 +154,33 @@ fun LoginScreen(){
                 contentDescription = Strings.Text.ROCK_TALK_LOGIN_LOGO,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(480.dp)
-                    .padding(top = 100.dp, bottom = 80.dp)
+                    .height(logoHeight)
                     .clip(RoundedCornerShape(2.dp)),
                 contentScale = ContentScale.FillBounds
             )
 
+            Spacer(modifier = Modifier.height(verticalSpacing))
+
             Image(
                 painter = painterResource(id = R.drawable.rock_talk_login_info),
-                contentDescription = Strings.Text.ROCK_TALK_LOGIN_LOGO,
+                contentDescription = Strings.Text.ROCK_TALK_LOGIN_TEXT,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 30.dp)
+                    .height(infoHeight)
                     .clip(RoundedCornerShape(2.dp)),
                 contentScale = ContentScale.FillWidth
             )
+
+            Spacer(modifier = Modifier.height(verticalSpacing))
 
             Image(
                 painter = painterResource(id = R.drawable.kakao_login_btn),
                 contentDescription = Strings.Text.KAKAO_LOGIN,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(buttonHeight)
                     .clip(RoundedCornerShape(2.dp))
-                    .clickable {
-                        onClickKakaoBtn(context)
-                    },
+                    .clickable { onClickKakaoBtn() },
                 contentScale = ContentScale.FillWidth
             )
 
@@ -158,15 +191,11 @@ fun LoginScreen(){
                 contentDescription = Strings.Text.NAVER_LOGIN,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(buttonHeight)
                     .clip(RoundedCornerShape(2.dp))
-                    .clickable {
-                        onClickNaverBtn(context);
-                    },
+                    .clickable { onClickNaverBtn() },
                 contentScale = ContentScale.FillWidth
             )
         }
     }
 }
-
-
-
