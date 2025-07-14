@@ -1,8 +1,12 @@
 package com.zikkeunzikkeun.rocktalk.api
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,4 +55,26 @@ fun firebaseLoginWithProviderToken(
             }
         }
     }
+}
+
+
+fun uploadToFirebaseStorage(context: Context, fileUri: Uri, filePath: String, fileType: String, onResult: (String?) -> Unit) {
+    val storage = Firebase.storage
+    val storageRef = storage.reference
+    val fileName = "${filePath}/${System.currentTimeMillis()}_${fileType}"
+    val fileRef = storageRef.child(fileName)
+
+    // Storage에 업로드
+    fileRef.putFile(fileUri)
+        .addOnSuccessListener {
+            // 업로드 성공 → 다운로드 URL 얻기
+            fileRef.downloadUrl.addOnSuccessListener { uri ->
+                onResult(uri.toString())
+            }.addOnFailureListener {
+                onResult(null)
+            }
+        }
+        .addOnFailureListener {
+            onResult(null)
+        }
 }

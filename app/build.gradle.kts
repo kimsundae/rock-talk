@@ -78,6 +78,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("androidx.navigation:navigation-compose:2.7.3")
     implementation("com.kakao.sdk:v2-user:2.10.0") // 카카오 로그인 API 모듈
     implementation("com.navercorp.nid:oauth:5.10.0") // 네이버
