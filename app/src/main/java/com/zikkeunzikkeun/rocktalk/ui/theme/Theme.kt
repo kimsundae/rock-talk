@@ -14,7 +14,7 @@ private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
     secondary = PurpleGrey80,
     tertiary = Pink80,
-            background = Color(0xFFFFC0CB)
+    background = Color(0xFFFFC0CB)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -47,7 +47,7 @@ fun RockTalkTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else LightColorScheme
         }
 
-        darkTheme -> DarkColorScheme
+        darkTheme -> LightColorScheme
         else -> LightColorScheme
     }
 

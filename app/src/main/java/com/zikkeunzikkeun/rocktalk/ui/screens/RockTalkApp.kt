@@ -32,6 +32,10 @@ fun RockTalkApp() {
                 composable("main_screen") {
                     MainScreen()
                 }
+
+                composable("user_profile_screen") {
+                    UserProfileScreen();
+                }
             }
         }
     }

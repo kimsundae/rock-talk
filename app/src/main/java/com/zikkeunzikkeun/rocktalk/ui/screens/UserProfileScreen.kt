@@ -25,22 +25,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
 import com.zikkeunzikkeun.rocktalk.R
+import com.zikkeunzikkeun.rocktalk.api.callUpdateUserInfoCloudFunction
+import com.zikkeunzikkeun.rocktalk.api.uploadProfileImageAndGetUrl
 import com.zikkeunzikkeun.rocktalk.ui.components.InputField
 import com.zikkeunzikkeun.rocktalk.ui.components.InputFieldWithIcon
+import com.zikkeunzikkeun.rocktalk.ui.theme.Orange40
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
+import kotlinx.coroutines.launch
 
 @Composable
 fun UserProfileScreen() {
     val context = LocalContext.current
-    var name by remember { mutableStateOf("") }
+    val user = FirebaseAuth.getInstance().currentUser
+    val uid = user?.uid
     var age by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
-    var center by remember { mutableStateOf("") }
+    var myCenter by remember { mutableStateOf("") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
-    var uploading by remember { mutableStateOf(false) }
-    var uploadMessage by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    var saveMessage by remember { mutableStateOf<String?>(null) }
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val contentWidth = screenWidth * 0.7f
@@ -48,6 +54,8 @@ fun UserProfileScreen() {
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> selectedUri = uri }
+
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -81,12 +89,6 @@ fun UserProfileScreen() {
                         modifier = Modifier.fillMaxSize().clip(CircleShape)
                     )
                 }
-                // 2. 필요하다면 반투명 회색 오버레이
-                 Box(
-                     modifier = Modifier
-                         .matchParentSize()
-                         .background(Color.Gray.copy(alpha = 0.4f))
-                 )
             }
 
             Icon(
@@ -105,18 +107,37 @@ fun UserProfileScreen() {
         Spacer(modifier = Modifier.height(32.dp))
 
         // 입력 필드 구성
-        InputField("성명", name) { name = it }
+        InputField("닉네임", nickname) { nickname = it }
         InputField("나이", age) { age = it }
         InputFieldWithIcon("성별", gender) { gender = it }
-        InputField("닉네임", nickname) { nickname = it }
-        InputFieldWithIcon("내센터", center) { center = it }
+        InputFieldWithIcon("내 센터", myCenter) { myCenter = it }
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { /* Save */ },
+            onClick = {
+
+                coroutineScope.launch {
+                    val imageUrl = selectedUri?.let {
+                            uploadProfileImageAndGetUrl(context,
+                                it, "profile", "img")
+                        }
+                    val success = callUpdateUserInfoCloudFunction(
+                        userId = uid.toString(),
+                        age = age,
+                        gender = gender,
+                        nickname = nickname,
+                        center = myCenter,
+                        profileImageUrl = imageUrl
+                    )
+                    saving = false
+                    saveMessage = if (success) "저장 완료!" else "저장 실패"
+                }
+                saving = true
+                saveMessage = null
+            },
             shape = RoundedCornerShape(50),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCC80)),
+            colors = ButtonDefaults.buttonColors(containerColor = Orange40),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)

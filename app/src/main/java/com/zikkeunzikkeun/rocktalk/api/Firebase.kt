@@ -3,9 +3,11 @@ package com.zikkeunzikkeun.rocktalk.api
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.functions
 import com.google.firebase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,4 +79,49 @@ fun uploadToFirebaseStorage(context: Context, fileUri: Uri, filePath: String, fi
         .addOnFailureListener {
             onResult(null)
         }
+}
+
+suspend fun uploadProfileImageAndGetUrl(context: Context, fileUri: Uri, filePath: String, fileType: String): String? {
+    return try {
+        val fileName = "${filePath}/${System.currentTimeMillis()}_${fileType}"
+        val storageRef = Firebase.storage.reference.child(fileName)
+        val uploadTask = storageRef.putFile(fileUri)
+        Tasks.await(uploadTask)
+        val urlTask = storageRef.downloadUrl
+        Tasks.await(urlTask)
+        urlTask.result.toString()
+    } catch (e: Exception) {
+        Log.e("upload error",e.toString())
+        null
+    }
+}
+
+suspend fun callUpdateUserInfoCloudFunction(
+    userId: String,
+    age: String,
+    gender: String,
+    nickname: String,
+    center: String,
+    profileImageUrl: String?
+): Boolean {
+    val data = hashMapOf(
+        "userId" to userId,
+        "age" to age,
+        "gender" to gender,
+        "nickname" to nickname,
+        "center" to center
+    )
+    if (!profileImageUrl.isNullOrBlank()) data["profileImageUrl"] = profileImageUrl
+
+    return try {
+        val result = Tasks.await(
+            Firebase.functions
+                .getHttpsCallable("updateUserInfo")
+                .call(data)
+        )
+        true
+    } catch (e: Exception) {
+        Log.e("update error",e.toString())
+        false
+    }
 }

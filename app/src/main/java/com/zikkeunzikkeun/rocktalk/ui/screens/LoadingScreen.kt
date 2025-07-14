@@ -15,7 +15,7 @@ fun LoadingScreen(navController: NavHostController) {
 
     LaunchedEffect(Unit) {
         if (currentUser != null) {
-            navController.navigate("main_screen") {
+            navController.navigate("user_profile_screen") {
                 popUpTo("loading_screen") { inclusive = true }
             }
         } else {
