@@ -1,6 +1,7 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -45,8 +46,6 @@ fun UserProfileScreen() {
     var nickname by remember { mutableStateOf("") }
     var myCenter by remember { mutableStateOf("") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
-    var saving by remember { mutableStateOf(false) }
-    var saveMessage by remember { mutableStateOf<String?>(null) }
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val contentWidth = screenWidth * 0.7f
@@ -116,11 +115,9 @@ fun UserProfileScreen() {
 
         Button(
             onClick = {
-
                 coroutineScope.launch {
                     val imageUrl = selectedUri?.let {
-                            uploadProfileImageAndGetUrl(context,
-                                it, "profile", "img")
+                            uploadProfileImageAndGetUrl(it, "profile", "img")
                         }
                     val success = callUpdateUserInfoCloudFunction(
                         userId = uid.toString(),
@@ -130,11 +127,11 @@ fun UserProfileScreen() {
                         center = myCenter,
                         profileImageUrl = imageUrl
                     )
-                    saving = false
-                    saveMessage = if (success) "저장 완료!" else "저장 실패"
+                    if (success)
+                        Toast.makeText(context, "성공 @@", Toast.LENGTH_SHORT).show()
+                    else
+                        Toast.makeText(context, "실패 !!", Toast.LENGTH_SHORT).show()
                 }
-                saving = true
-                saveMessage = null
             },
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = Orange40),

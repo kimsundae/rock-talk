@@ -7,7 +7,6 @@ import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
-import com.google.firebase.functions.functions
 import com.google.firebase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,8 +80,12 @@ fun uploadToFirebaseStorage(context: Context, fileUri: Uri, filePath: String, fi
         }
 }
 
-suspend fun uploadProfileImageAndGetUrl(context: Context, fileUri: Uri, filePath: String, fileType: String): String? {
-    return try {
+suspend fun uploadProfileImageAndGetUrl(
+    fileUri: Uri,
+    filePath: String,
+    fileType: String
+): String? = withContext(Dispatchers.IO) {
+    try {
         val fileName = "${filePath}/${System.currentTimeMillis()}_${fileType}"
         val storageRef = Firebase.storage.reference.child(fileName)
         val uploadTask = storageRef.putFile(fileUri)
@@ -91,7 +94,7 @@ suspend fun uploadProfileImageAndGetUrl(context: Context, fileUri: Uri, filePath
         Tasks.await(urlTask)
         urlTask.result.toString()
     } catch (e: Exception) {
-        Log.e("upload error",e.toString())
+        Log.e("upload error", e.toString())
         null
     }
 }
@@ -103,7 +106,7 @@ suspend fun callUpdateUserInfoCloudFunction(
     nickname: String,
     center: String,
     profileImageUrl: String?
-): Boolean {
+): Boolean = withContext(Dispatchers.IO) {
     val data = hashMapOf(
         "userId" to userId,
         "age" to age,
@@ -111,17 +114,20 @@ suspend fun callUpdateUserInfoCloudFunction(
         "nickname" to nickname,
         "center" to center
     )
-    if (!profileImageUrl.isNullOrBlank()) data["profileImageUrl"] = profileImageUrl
+    if (!profileImageUrl.isNullOrBlank()) {
+        data["profileImageUrl"] = profileImageUrl
+    }
 
-    return try {
-        val result = Tasks.await(
-            Firebase.functions
+    try {
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        Tasks.await(
+            functions
                 .getHttpsCallable("updateUserInfo")
                 .call(data)
         )
         true
     } catch (e: Exception) {
-        Log.e("update error",e.toString())
+        Log.e("update error", e.toString())
         false
     }
 }

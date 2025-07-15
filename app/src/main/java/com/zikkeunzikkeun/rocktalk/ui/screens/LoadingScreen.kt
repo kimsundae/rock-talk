@@ -1,5 +1,6 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -15,6 +16,7 @@ fun LoadingScreen(navController: NavHostController) {
 
     LaunchedEffect(Unit) {
         if (currentUser != null) {
+            Log.i("loadingscreen", "exist currentUser");
             navController.navigate("user_profile_screen") {
                 popUpTo("loading_screen") { inclusive = true }
             }
