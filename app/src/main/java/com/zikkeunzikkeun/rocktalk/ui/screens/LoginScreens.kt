@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +36,8 @@ import com.navercorp.nid.NaverIdLoginSDK
 import com.navercorp.nid.oauth.OAuthLoginCallback
 import com.zikkeunzikkeun.rocktalk.R
 import com.zikkeunzikkeun.rocktalk.api.firebaseLoginWithProviderToken
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
 
 
@@ -49,22 +54,31 @@ fun LoginScreen(navController: NavHostController) {
     val buttonHeight = screenHeight * 0.07f
     val verticalSpacing = screenHeight * 0.02f
 
+    var isLoading by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+
     val kakaoCallback: (OAuthToken?, Throwable?) -> Unit = remember {
         { token, error ->
             when {
-                error != null -> Log.e(null, Strings.Errors.KAKAO_ACCOUNT_LOGIN_FAIL, error)
+                error != null -> {
+                    isLoading=false
+                    showErrorDialog = true
+                    Log.e(null, Strings.Errors.KAKAO_ACCOUNT_LOGIN_FAIL, error)
+                }
                 token != null -> {
                     Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
                     firebaseLoginWithProviderToken(
                         provider = "KAKAO",
                         token.accessToken,
                         onSuccess = {
-                            navController.navigate("main_screen") {
+                            isLoading = false;
+                            navController.navigate("loading_screen") {
                                 popUpTo("login_screen") { inclusive = true }
                             }
                         },
                         onFailure = {
-                            Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
+                            isLoading = false;
+                            showErrorDialog = true
                         }
                     )
                 }
@@ -74,50 +88,65 @@ fun LoginScreen(navController: NavHostController) {
 
     val onClickKakaoBtn = remember {
         {
-            if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
-                UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
-                    if (error != null) {
-                        Log.e(null, Strings.Errors.KAKAO_LOGIN_FAIL, error)
-                        if (error is ClientError && error.reason == ClientErrorCause.Cancelled) return@loginWithKakaoTalk
-                        UserApiClient.instance.loginWithKakaoAccount(context, callback = kakaoCallback)
-                    } else if (token != null) {
-                        Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
-                        firebaseLoginWithProviderToken(
-                            provider = "KAKAO",
-                            token.accessToken,
-                            onSuccess = {
-                                navController.navigate("main_screen") {
-                                    popUpTo("login_screen") { inclusive = true }
+            isLoading = true;
+            try{
+                if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
+                    UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
+                        if (error != null) {
+                            Log.e(null, Strings.Errors.KAKAO_LOGIN_FAIL, error)
+                            if (error is ClientError && error.reason == ClientErrorCause.Cancelled) return@loginWithKakaoTalk
+                            UserApiClient.instance.loginWithKakaoAccount(context, callback = kakaoCallback)
+                        } else if (token != null) {
+                            Log.i(null, "${Strings.Notice.KAKAO_ACCOUNT_LOGIN_SUCCESS} ${token.accessToken}")
+                            firebaseLoginWithProviderToken(
+                                provider = "KAKAO",
+                                token.accessToken,
+                                onSuccess = {
+                                    isLoading = false
+                                    navController.navigate("loading_screen") {
+                                        popUpTo("login_screen") { inclusive = true }
+                                    }
+                                },
+                                onFailure = {
+                                    isLoading = false
+                                    showErrorDialog = true
+                                    Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
                                 }
-                            },
-                            onFailure = {
-                                Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
-                            }
-                        )
+                            )
+                        }
                     }
+                } else {
+                    UserApiClient.instance.loginWithKakaoAccount(context, callback = kakaoCallback)
                 }
-            } else {
-                UserApiClient.instance.loginWithKakaoAccount(context, callback = kakaoCallback)
+            }catch(e: Exception){
+                isLoading=false
+                showErrorDialog = true
+                Log.e("KAKAO_LOGIN", "예외 발생", e)
             }
         }
     }
 
     val onClickNaverBtn = remember {
         {
+            isLoading = true
             val callback = object : OAuthLoginCallback {
                 override fun onSuccess() {
                     val accessToken = NaverIdLoginSDK.getAccessToken()
                     Toast.makeText(context, "네이버 로그인 성공! 토큰: $accessToken", Toast.LENGTH_SHORT).show()
                     Log.i("NaverLogin", "accessToken: $accessToken")
+                    isLoading = true;
                     firebaseLoginWithProviderToken(
                         provider = "NAVER",
                         accessToken.toString(),
                         onSuccess = {
-                            navController.navigate("main_screen") {
+                            isLoading = false;
+                            navController.navigate("loading_screen") {
                                 popUpTo("login_screen") { inclusive = true }
                             }
                         },
                         onFailure = {
+                            isLoading = false;
+                            showErrorDialog = true
                             Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
                         }
                     )
@@ -128,6 +157,8 @@ fun LoginScreen(navController: NavHostController) {
                     val errorDescription = NaverIdLoginSDK.getLastErrorDescription()
                     Toast.makeText(context, "Naver 로그인 실패: $errorCode, $errorDescription", Toast.LENGTH_SHORT).show()
                     Log.e("NaverLogin", "errorCode: $errorCode, $errorDescription")
+                    isLoading = false
+                    showErrorDialog = true
                 }
 
                 override fun onError(errorCode: Int, message: String) {
@@ -198,4 +229,13 @@ fun LoginScreen(navController: NavHostController) {
             )
         }
     }
+
+    CommonProgress(isLoading = isLoading);
+    CommonAlertDialog(
+        isShow = showErrorDialog,
+        onDismiss = { showErrorDialog = false },
+        "",
+        "일시적인 오류가 발생했습니다",
+        "확인"
+    )
 }

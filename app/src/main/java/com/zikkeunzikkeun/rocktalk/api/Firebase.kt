@@ -1,6 +1,5 @@
 package com.zikkeunzikkeun.rocktalk.api
 
-import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.google.android.gms.tasks.Tasks
@@ -8,6 +7,8 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.storage
+import com.google.gson.Gson
+import com.zikkeunzikkeun.rocktalk.dto.UserInfoDto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,28 +57,6 @@ fun firebaseLoginWithProviderToken(
             }
         }
     }
-}
-
-
-fun uploadToFirebaseStorage(context: Context, fileUri: Uri, filePath: String, fileType: String, onResult: (String?) -> Unit) {
-    val storage = Firebase.storage
-    val storageRef = storage.reference
-    val fileName = "${filePath}/${System.currentTimeMillis()}_${fileType}"
-    val fileRef = storageRef.child(fileName)
-
-    // Storage에 업로드
-    fileRef.putFile(fileUri)
-        .addOnSuccessListener {
-            // 업로드 성공 → 다운로드 URL 얻기
-            fileRef.downloadUrl.addOnSuccessListener { uri ->
-                onResult(uri.toString())
-            }.addOnFailureListener {
-                onResult(null)
-            }
-        }
-        .addOnFailureListener {
-            onResult(null)
-        }
 }
 
 suspend fun uploadProfileImageAndGetUrl(
@@ -129,5 +108,24 @@ suspend fun callUpdateUserInfoCloudFunction(
     } catch (e: Exception) {
         Log.e("update error", e.toString())
         false
+    }
+}
+
+suspend fun getUserInfo(userId: String): UserInfoDto? = withContext(Dispatchers.IO) {
+    val data = hashMapOf("userId" to userId)
+
+    return@withContext try {
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        val result = Tasks.await(
+            functions.getHttpsCallable("getUserInfo").call(data)
+        )
+        // 1. Map → Json → DTO
+        val map = result.data as? Map<*, *>
+        val gson = Gson()
+        val jsonString = gson.toJson(map)
+        gson.fromJson(jsonString, UserInfoDto::class.java)
+    } catch (e: Exception) {
+        Log.e("getUserInfo error", e.toString())
+        null
     }
 }

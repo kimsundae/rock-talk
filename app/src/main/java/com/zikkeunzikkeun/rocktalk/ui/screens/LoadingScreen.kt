@@ -27,7 +27,6 @@ fun LoadingScreen(navController: NavHostController) {
         }
     }
 
-    // 로딩 UI (원형 프로그레스)
     CircularProgressIndicator(
         modifier = Modifier.fillMaxSize()
     )
