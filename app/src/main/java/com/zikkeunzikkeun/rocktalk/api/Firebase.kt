@@ -8,6 +8,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.storage
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.zikkeunzikkeun.rocktalk.dto.UserInfoDto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,22 +80,15 @@ suspend fun uploadProfileImageAndGetUrl(
 }
 
 suspend fun callUpdateUserInfoCloudFunction(
-    userId: String,
-    age: String,
-    gender: String,
-    nickname: String,
-    center: String,
-    profileImageUrl: String?
+    userInfoDto: UserInfoDto
 ): Boolean = withContext(Dispatchers.IO) {
-    val data = hashMapOf(
-        "userId" to userId,
-        "age" to age,
-        "gender" to gender,
-        "nickname" to nickname,
-        "center" to center
-    )
-    if (!profileImageUrl.isNullOrBlank()) {
-        data["profileImageUrl"] = profileImageUrl
+    val gson = Gson()
+    val json = gson.toJson(userInfoDto)
+    val mapType = object : TypeToken<Map<String, Any?>>() {}.type
+    val data: MutableMap<String, Any?> = gson.fromJson(json, mapType)
+
+    if (!userInfoDto.profileImageUrl.isNullOrBlank()) {
+        data["profileImageUrl"] = userInfoDto.profileImageUrl
     }
 
     try {

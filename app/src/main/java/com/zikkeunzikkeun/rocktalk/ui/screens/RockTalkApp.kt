@@ -5,17 +5,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.zikkeunzikkeun.rocktalk.ui.components.BottomNavBar
 import com.zikkeunzikkeun.rocktalk.ui.theme.RockTalkTheme
 
 @Composable
 fun RockTalkApp() {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     RockTalkTheme {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            bottomBar = {
+                if (currentRoute !in listOf("login_screen")) {
+                    BottomNavBar(navController)
+                }
+            }
+        ) { innerPadding ->
             NavHost(
                 modifier = Modifier.padding(innerPadding),
                 navController = navController,
@@ -34,7 +46,7 @@ fun RockTalkApp() {
                 }
 
                 composable("user_profile_screen") {
-                    UserProfileScreen();
+                    UserProfileScreen(navController);
                 }
             }
         }

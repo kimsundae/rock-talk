@@ -39,6 +39,7 @@ import com.zikkeunzikkeun.rocktalk.api.firebaseLoginWithProviderToken
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
+import com.zikkeunzikkeun.rocktalk.util.moveToLogin
 
 
 @Composable
@@ -56,6 +57,7 @@ fun LoginScreen(navController: NavHostController) {
 
     var isLoading by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
+    var onDismiss by remember {mutableStateOf({showErrorDialog = false})}
 
     val kakaoCallback: (OAuthToken?, Throwable?) -> Unit = remember {
         { token, error ->
@@ -233,7 +235,7 @@ fun LoginScreen(navController: NavHostController) {
     CommonProgress(isLoading = isLoading);
     CommonAlertDialog(
         isShow = showErrorDialog,
-        onDismiss = { showErrorDialog = false },
+        onDismiss = onDismiss,
         "",
         "일시적인 오류가 발생했습니다",
         "확인"

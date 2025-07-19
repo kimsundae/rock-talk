@@ -1,13 +1,14 @@
 package com.zikkeunzikkeun.rocktalk.dto
 
 data class UserInfoDto(
-    val userId: String = "",
+    val userId: String? = "",
     val nickname: String = "",
     val gender: String = "",
     val age: Int = 0,
     val provider: String = "",
     val updatedAt: String = "",
-    val profileImageUrl: String = "",
+    val profileImageUrl: String? = "",
+    val center: String = "",
     val editYn: Boolean = false
 ){
     override fun equals(other: Any?): Boolean {

@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.zikkeunzikkeun.rocktalk.ui.screens.LoginScreen
+import androidx.navigation.compose.rememberNavController
 import com.zikkeunzikkeun.rocktalk.ui.screens.RockTalkApp
 import com.zikkeunzikkeun.rocktalk.ui.screens.UserProfileScreen
 import com.zikkeunzikkeun.rocktalk.ui.theme.RockTalkTheme
@@ -24,8 +24,8 @@ class MainActivity : ComponentActivity() {
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-//        val navController = rememberNavController()
+        val navController = rememberNavController()
 //        LoginScreen(navController)
-        UserProfileScreen();
+        UserProfileScreen(navController);
 
 }

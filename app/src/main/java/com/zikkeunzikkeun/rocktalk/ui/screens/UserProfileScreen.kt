@@ -1,7 +1,6 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -20,34 +19,41 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.google.firebase.auth.FirebaseAuth
 import com.zikkeunzikkeun.rocktalk.R
 import com.zikkeunzikkeun.rocktalk.api.callUpdateUserInfoCloudFunction
+import com.zikkeunzikkeun.rocktalk.util.getUserId
 import com.zikkeunzikkeun.rocktalk.api.uploadProfileImageAndGetUrl
+import com.zikkeunzikkeun.rocktalk.dto.AlertDialogData
+import com.zikkeunzikkeun.rocktalk.dto.UserInfoDto
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonRadioGroup
 import com.zikkeunzikkeun.rocktalk.ui.components.InputField
 import com.zikkeunzikkeun.rocktalk.ui.components.InputFieldWithIcon
 import com.zikkeunzikkeun.rocktalk.ui.theme.Orange40
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
+import com.zikkeunzikkeun.rocktalk.util.moveToLogin
 import kotlinx.coroutines.launch
 
 @Composable
-fun UserProfileScreen() {
-    val context = LocalContext.current
-    val user = FirebaseAuth.getInstance().currentUser
-    val uid = user?.uid
+fun UserProfileScreen(navController: NavController) {
+    val userId: String? = getUserId()
     var age by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
     var myCenter by remember { mutableStateOf("") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    // dialog 상태관리
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogData by remember { mutableStateOf(AlertDialogData(){showDialog = false}) }
+
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val contentWidth = screenWidth * 0.7f
@@ -55,8 +61,23 @@ fun UserProfileScreen() {
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> selectedUri = uri }
-
+    // 저장 시 사용하는 coroutine
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(userId) {
+        if (userId.isNullOrEmpty()) {
+            dialogData = AlertDialogData(
+                "오류",
+                "사용자 정보를 불러올 수 없습니다. \n다시 로그인 해주시기 바랍니다.",
+                "확인"
+            ){
+                showDialog = false
+                moveToLogin(navController)
+            }
+            showDialog = true
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize(),
@@ -71,8 +92,8 @@ fun UserProfileScreen() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // 프로필 사진 영역 (기본 회색 원)
             Box {
-                // 프로필 사진 (기본 회색 원)
                 Box(
                     modifier = Modifier
                         .size(200.dp)
@@ -94,7 +115,6 @@ fun UserProfileScreen() {
                         )
                     }
                 }
-
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Edit Profile",
@@ -123,6 +143,7 @@ fun UserProfileScreen() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // 저장 버튼
             Button(
                 onClick = {
                     coroutineScope.launch {
@@ -130,19 +151,36 @@ fun UserProfileScreen() {
                         val imageUrl = selectedUri?.let {
                             uploadProfileImageAndGetUrl(it, "profile", "img")
                         }
-                        val success = callUpdateUserInfoCloudFunction(
-                            userId = uid.toString(),
-                            age = age,
+                        val success = callUpdateUserInfoCloudFunction(UserInfoDto(
+                            userId = userId,
+                            age = age.toIntOrNull() ?: 0,
                             gender = gender,
                             nickname = nickname,
                             center = myCenter,
                             profileImageUrl = imageUrl
-                        )
+                        ))
+
                         isLoading = false
-                        if (success)
-                            Toast.makeText(context, "성공 @@", Toast.LENGTH_SHORT).show()
-                        else
-                            Toast.makeText(context, "실패 !!", Toast.LENGTH_SHORT).show()
+                        if (success) {
+                            dialogData = AlertDialogData(
+                                title = "알림",
+                                text = "저장에 성공했습니다.",
+                                buttonText = "확인"
+                            ){
+                                showDialog = false
+                            }
+                            showDialog = true
+                        }
+                        else {
+                            dialogData = AlertDialogData(
+                                title = "알림",
+                                text = "저장에 실패했습니다.",
+                                buttonText = "확인"
+                            ){
+                                showDialog = false
+                            }
+                            showDialog = true;
+                        }
                     }
                 },
                 shape = RoundedCornerShape(50),
@@ -155,6 +193,8 @@ fun UserProfileScreen() {
             }
         }
     }
+
+    // loading composable
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -169,5 +209,23 @@ fun UserProfileScreen() {
             )
         }
     }
+    // dialog composable
+    CommonAlertDialog(
+        isShow = showDialog,
+        onDismiss = dialogData.onDismiss,
+        title = dialogData.title,
+        text = dialogData.text,
+        buttonText = dialogData.buttonText
+    )
+    CommonConfirmDialog(
+        isShow: Boolean = ,
+        onDismiss: () -> Unit = ,
+        title: String = "알림",
+        text: String = "저장하시겠습니까?",
+        confirmText: String = "확인",
+        cancelText: String = "취소",
+        onConfirm: (() -> Unit)? = null,
+        onCancel: (() -> Unit)? = null
+    )
 }
 
