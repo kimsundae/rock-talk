@@ -107,13 +107,12 @@ suspend fun callUpdateUserInfoCloudFunction(
 
 suspend fun getUserInfo(userId: String): UserInfoDto? = withContext(Dispatchers.IO) {
     val data = hashMapOf("userId" to userId)
-
+    Log.i("userid", userId)
     return@withContext try {
         val functions = FirebaseFunctions.getInstance("asia-northeast3")
         val result = Tasks.await(
             functions.getHttpsCallable("getUserInfo").call(data)
         )
-        // 1. Map → Json → DTO
         val map = result.data as? Map<*, *>
         val gson = Gson()
         val jsonString = gson.toJson(map)
