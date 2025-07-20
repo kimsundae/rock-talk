@@ -112,7 +112,7 @@ fun LoginScreen(navController: NavHostController) {
                                 onFailure = {
                                     isLoading = false
                                     showErrorDialog = true
-                                    Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "로그인 실패", Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -134,7 +134,7 @@ fun LoginScreen(navController: NavHostController) {
             val callback = object : OAuthLoginCallback {
                 override fun onSuccess() {
                     val accessToken = NaverIdLoginSDK.getAccessToken()
-                    Toast.makeText(context, "네이버 로그인 성공! 토큰: $accessToken", Toast.LENGTH_SHORT).show()
+//                    Toast.makeText(context, "네이버 로그인 성공! 토큰: $accessToken", Toast.LENGTH_SHORT).show()
                     Log.i("NaverLogin", "accessToken: $accessToken")
                     isLoading = true;
                     firebaseLoginWithProviderToken(
@@ -149,7 +149,7 @@ fun LoginScreen(navController: NavHostController) {
                         onFailure = {
                             isLoading = false;
                             showErrorDialog = true
-                            Toast.makeText(context, "Firebase 로그인 실패: ${it.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "로그인 실패", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }
@@ -157,7 +157,7 @@ fun LoginScreen(navController: NavHostController) {
                 override fun onFailure(httpStatus: Int, message: String) {
                     val errorCode = NaverIdLoginSDK.getLastErrorCode().code
                     val errorDescription = NaverIdLoginSDK.getLastErrorDescription()
-                    Toast.makeText(context, "Naver 로그인 실패: $errorCode, $errorDescription", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Naver 로그인 실패", Toast.LENGTH_SHORT).show()
                     Log.e("NaverLogin", "errorCode: $errorCode, $errorDescription")
                     isLoading = false
                     showErrorDialog = true

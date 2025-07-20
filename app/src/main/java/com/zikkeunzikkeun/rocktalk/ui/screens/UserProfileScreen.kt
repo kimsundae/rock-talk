@@ -1,6 +1,7 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -59,14 +60,22 @@ fun UserProfileScreen(navController: NavController) {
     val screenWidth = configuration.screenWidthDp.dp
     val contentWidth = screenWidth * 0.7f
 
+    var userInfo by remember { mutableStateOf<UserInfoDto?>(null) }
+
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> selectedUri = uri }
 
+    val profileImagePainter = when {
+        selectedUri != null -> rememberAsyncImagePainter(selectedUri)
+        !userInfo?.profileImageUrl.isNullOrBlank() -> rememberAsyncImagePainter(userInfo?.profileImageUrl)
+        else -> painterResource(id = R.drawable.default_profile_img)
+    }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(userId) {
-        val userInfo = getUserInfo(userId ?: "")
+        userInfo = getUserInfo(userId ?: "")
+        Log.i("uri", userInfo.toString())
         if (userId.isNullOrEmpty() || userInfo == null) {
             dialogData = AlertDialogData(
                 "오류",
@@ -78,11 +87,12 @@ fun UserProfileScreen(navController: NavController) {
             }
             showDialog = true
         } else {
-            age = userInfo.age.toString()
-            gender = userInfo.gender
-            nickname = userInfo.nickname
-            myCenter = userInfo.center
-            selectedUri = userInfo.profileImageUrl?.let { Uri.parse(it) }
+            userInfo?.let {
+                age = it.age.toString()
+                gender = it.gender
+                nickname = it.nickname
+                myCenter = it.center
+            }
         }
     }
 
@@ -109,17 +119,8 @@ fun UserProfileScreen(navController: NavController) {
                 ) {
                     if (selectedUri != null) {
                         Image(
-                            painter = rememberAsyncImagePainter(selectedUri),
+                            painter = profileImagePainter,
                             contentDescription = "프로필",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = R.drawable.default_profile_img),
-                            contentDescription = "기본 프로필",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
@@ -151,7 +152,7 @@ fun UserProfileScreen(navController: NavController) {
                 onSelect = { gender = it },
                 label = "성별"
             )
-            InputFieldWithIcon("내 센터", myCenter) { myCenter = it }
+            InputFieldWithIcon("내센터", myCenter) { myCenter = it }
 
             Spacer(modifier = Modifier.height(32.dp))
 
