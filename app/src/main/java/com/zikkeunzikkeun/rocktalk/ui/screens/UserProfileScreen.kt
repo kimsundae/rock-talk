@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -20,80 +21,115 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.ImageLoader
+import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import com.zikkeunzikkeun.rocktalk.R
 import com.zikkeunzikkeun.rocktalk.api.callUpdateUserInfoCloudFunction
+import com.zikkeunzikkeun.rocktalk.api.clearUserInfoCache
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
 import com.zikkeunzikkeun.rocktalk.util.getUserId
 import com.zikkeunzikkeun.rocktalk.api.uploadProfileImageAndGetUrl
 import com.zikkeunzikkeun.rocktalk.dto.AlertDialogData
-import com.zikkeunzikkeun.rocktalk.dto.UserInfoDto
+import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonCenterSelectDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonRadioGroup
 import com.zikkeunzikkeun.rocktalk.ui.components.InputField
 import com.zikkeunzikkeun.rocktalk.ui.components.InputFieldWithIcon
+import com.zikkeunzikkeun.rocktalk.ui.theme.LightGray40
 import com.zikkeunzikkeun.rocktalk.ui.theme.Orange40
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
 import com.zikkeunzikkeun.rocktalk.util.moveToLogin
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 
 @Composable
-fun UserProfileScreen(navController: NavController) {
+fun UserProfileScreen(
+    navController: NavController,
+    userInfo: UserInfoData?,
+    setUserInfo: (UserInfoData?) -> Unit
+) {
+    val context = LocalContext.current
     val userId: String? = getUserId()
     var age by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
-    var myCenter by remember { mutableStateOf("") }
+    var centerId by remember { mutableStateOf("") }
+    var centerName by remember { mutableStateOf("") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     // dialog 상태관리
-    var showDialog by remember { mutableStateOf(false) }
-    var dialogData by remember { mutableStateOf(AlertDialogData(){showDialog = false}) }
-    var showConfirmDialog by remember {mutableStateOf(false)}
+    var isShowDialog by remember { mutableStateOf(false) }
+    var isShowConfirmDialog by remember {mutableStateOf(false)}
+    var isShowCenterDialog by remember { mutableStateOf(false) }
+    var dialogData by remember { mutableStateOf(AlertDialogData(){isShowDialog = false}) }
+
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val contentWidth = screenWidth * 0.7f
-
-    var userInfo by remember { mutableStateOf<UserInfoDto?>(null) }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> selectedUri = uri }
 
-    val profileImagePainter = when {
-        selectedUri != null -> rememberAsyncImagePainter(selectedUri)
-        !userInfo?.profileImageUrl.isNullOrBlank() -> rememberAsyncImagePainter(userInfo?.profileImageUrl)
-        else -> painterResource(id = R.drawable.default_profile_img)
+    // firebase storage 이미지 설정
+    val imageModel = selectedUri ?: userInfo?.profileImageUrl
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
+            .crossfade(true)
+            .okHttpClient {
+                OkHttpClient.Builder()
+                    .connectTimeout(8, TimeUnit.SECONDS)
+                    .readTimeout(8, TimeUnit.SECONDS)
+                    .writeTimeout(8, TimeUnit.SECONDS)
+                    .build()
+            }
+            .build()
     }
+
+    val painter = rememberAsyncImagePainter(
+        model = imageModel,
+        imageLoader = imageLoader,
+        placeholder = painterResource(R.drawable.default_profile_img),
+        error = painterResource(R.drawable.default_profile_img)
+    )
+
+    val state = painter.state
+
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(userId) {
-        userInfo = getUserInfo(userId ?: "")
-        Log.i("uri", userInfo.toString())
+        isLoading = true
         if (userId.isNullOrEmpty() || userInfo == null) {
             dialogData = AlertDialogData(
                 "오류",
                 "사용자 정보를 불러올 수 없습니다. \n다시 로그인 해주시기 바랍니다.",
                 "확인"
             ){
-                showDialog = false
+                isShowDialog = false
                 moveToLogin(navController)
             }
-            showDialog = true
+            isShowDialog = true
         } else {
-            userInfo?.let {
+            userInfo.let {
                 age = it.age.toString()
                 gender = it.gender
                 nickname = it.nickname
-                myCenter = it.center
+                centerId = it.centerId
+                centerName = it.centerName
             }
         }
+        isLoading = false
     }
 
     Box(
@@ -116,15 +152,34 @@ fun UserProfileScreen(navController: NavController) {
                     modifier = Modifier
                         .size(200.dp)
                         .clip(CircleShape)
+                        .then(
+                            if (userInfo == null && selectedUri == null) {
+                                Modifier.border(
+                                    width = 3.dp,
+                                    color = LightGray40,
+                                    shape = CircleShape
+                                )
+                            } else {
+                                Modifier
+                            }
+                        )
                 ) {
-                    if (selectedUri != null) {
-                        Image(
-                            painter = profileImagePainter,
-                            contentDescription = "프로필",
-                            contentScale = ContentScale.Crop,
+                    Image(
+                        painter = painter,
+                        contentDescription = "프로필 이미지",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                    )
+                    if (state is AsyncImagePainter.State.Loading) {
+                        Log.i("state", "loading");
+                        CircularProgressIndicator(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
+                                .size(100.dp)
+                                .align(Alignment.Center),
+                            strokeWidth = 3.dp,
+                            color = Color.Gray
                         )
                     }
                 }
@@ -152,13 +207,13 @@ fun UserProfileScreen(navController: NavController) {
                 onSelect = { gender = it },
                 label = "성별"
             )
-            InputFieldWithIcon("내센터", myCenter) { myCenter = it }
+            InputFieldWithIcon("내센터", centerName){isShowCenterDialog = true}
 
             Spacer(modifier = Modifier.height(32.dp))
 
             // 저장 버튼
             Button(
-                onClick = { showConfirmDialog = true },
+                onClick = { isShowConfirmDialog = true },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(containerColor = Orange40),
                 modifier = Modifier
@@ -171,31 +226,27 @@ fun UserProfileScreen(navController: NavController) {
     }
 
     // loading composable
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .width(64.dp)
-                    .padding(top = 24.dp),
-                color = MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            )
-        }
-    }
+    CommonProgress(isLoading = isLoading);
     // dialog composable
     CommonAlertDialog(
-        isShow = showDialog,
+        isShow = isShowDialog,
         onDismiss = dialogData.onDismiss,
         title = dialogData.title,
         text = dialogData.text,
         buttonText = dialogData.buttonText
     )
+    CommonCenterSelectDialog(
+        isShow = isShowCenterDialog,
+        onDismiss = {isShowCenterDialog = false},
+        onCenterClick = { centerInfoDto ->
+            centerId = centerInfoDto.centerId
+            centerName = centerInfoDto.centerName
+            isShowCenterDialog = false
+        }
+    )
     CommonConfirmDialog(
-        isShow = showConfirmDialog,
-        onDismiss = { showConfirmDialog = false },
+        isShow = isShowConfirmDialog,
+        onDismiss = { isShowConfirmDialog = false },
         title = "알림",
         text = "저장하시겠습니까?",
         confirmText = "확인",
@@ -206,25 +257,32 @@ fun UserProfileScreen(navController: NavController) {
                 val imageUrl = selectedUri?.let {
                     uploadProfileImageAndGetUrl(it, "profile", "img")
                 }
-                val success = callUpdateUserInfoCloudFunction(UserInfoDto(
+                val userInfoData = UserInfoData(
                     userId = userId,
                     age = age.toIntOrNull() ?: 0,
                     gender = gender,
                     nickname = nickname,
-                    center = myCenter,
+                    centerId = centerId,
                     profileImageUrl = imageUrl
-                ))
-
+                )
+                val success = callUpdateUserInfoCloudFunction(userInfoData)
                 isLoading = false
                 if (success) {
+                    clearUserInfoCache()
+                    val updatedUserInfo = getUserInfo(userId ?: "")
+                    setUserInfo(updatedUserInfo?.copy())
+
                     dialogData = AlertDialogData(
                         title = "알림",
                         text = "저장에 성공했습니다.",
                         buttonText = "확인"
                     ){
-                        showDialog = false
+                        isShowDialog = false
                     }
-                    showDialog = true
+                    isShowDialog = true
+                    navController.navigate("main_screen") {
+                        popUpTo("user_profile_screen") { inclusive = true }
+                    }
                 }
                 else {
                     dialogData = AlertDialogData(
@@ -232,9 +290,9 @@ fun UserProfileScreen(navController: NavController) {
                         text = "저장에 실패했습니다.",
                         buttonText = "확인"
                     ){
-                        showDialog = false
+                        isShowDialog = false
                     }
-                    showDialog = true;
+                    isShowDialog = true;
                 }
             }
         },

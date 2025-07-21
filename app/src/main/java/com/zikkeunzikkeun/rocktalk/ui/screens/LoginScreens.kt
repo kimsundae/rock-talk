@@ -39,8 +39,6 @@ import com.zikkeunzikkeun.rocktalk.api.firebaseLoginWithProviderToken
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
-import com.zikkeunzikkeun.rocktalk.util.moveToLogin
-
 
 @Composable
 fun LoginScreen(navController: NavHostController) {

@@ -1,6 +1,6 @@
 package com.zikkeunzikkeun.rocktalk.dto
 
-data class UserInfoDto(
+data class UserInfoData(
     val userId: String? = "",
     val nickname: String = "",
     val gender: String = "",
@@ -8,13 +8,14 @@ data class UserInfoDto(
     val provider: String = "",
     val updatedAt: String = "",
     val profileImageUrl: String? = "",
-    val center: String = "",
+    val centerId: String = "",
+    val centerName: String = "",
     val editYn: Boolean = false
 ){
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as UserInfoDto
+        other as UserInfoData
         return userId == other.userId
     }
     override fun hashCode(): Int {

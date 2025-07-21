@@ -12,13 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.zikkeunzikkeun.rocktalk.ui.theme.LightGreen40
 
 @Composable
 fun BottomNavBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    NavigationBar {
+    NavigationBar(containerColor = LightGreen40,) {
         NavigationBarItem(
             selected = currentRoute == "record_screen",
             onClick = { navController.navigate("record_screen") },

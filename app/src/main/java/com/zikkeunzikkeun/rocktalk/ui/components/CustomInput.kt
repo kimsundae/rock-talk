@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -56,13 +55,13 @@ fun InputField(label: String, value: String, onValueChange: (String) -> Unit) {
         Image(
             painter = painterResource(id = R.drawable.rock_icon),
             contentDescription = null,
-            contentScale = ContentScale.Fit,  // 또는 ContentScale.Inside
+            contentScale = ContentScale.Fit,
             modifier = Modifier.weight(1f)
         )
         Text(
             label,
             modifier = Modifier
-                .weight(2f)   // 1 / (1+1+8) = 10%
+                .weight(2f)
                 .padding(start = 4.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -88,7 +87,7 @@ fun InputField(label: String, value: String, onValueChange: (String) -> Unit) {
                     .onFocusChanged { focusState -> isFocused = focusState.isFocused },
                 decorationBox = { innerTextField ->
                     Box(
-                        contentAlignment = androidx.compose.ui.Alignment.CenterStart,
+                        contentAlignment = Alignment.CenterStart,
                         modifier = Modifier.fillMaxSize()
                     ) {
                         if (value.isEmpty()) {
@@ -107,45 +106,62 @@ fun InputField(label: String, value: String, onValueChange: (String) -> Unit) {
 }
 
 @Composable
-fun InputFieldWithIcon(label: String, value: String, onValueChange: (String) -> Unit) {
+fun InputFieldWithIcon(label: String, value: String, onClick: () -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
-    val borderColor = if (isFocused) Color(0xFF81C784) else Color(0xFFDDDDDD)
-
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) Color(0xFF81C784) else Color(0xFFDDDDDD),
+        label = "borderColor"
+    )
     Row(verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
+            .fillMaxWidth()
             .height(56.dp)
             .padding(vertical = 6.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.rock_icon),
             contentDescription = null,
-            contentScale = ContentScale.Fit,  // 또는 ContentScale.Inside
+            contentScale = ContentScale.Fit,
             modifier = Modifier.weight(1f)
         )
         Text(
             label,
             modifier = Modifier
-                .weight(2f)   // 1 / (1+1+8) = 10%
+                .weight(2f)
                 .padding(start = 4.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Column(modifier = Modifier
+        Column(
+            modifier = Modifier
             .fillMaxWidth()
-            .weight(7f)) {
+            .weight(7f)
+        ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFFFFFFF), RoundedCornerShape(8.dp))) {
+                    .height(48.dp)
+                    .border(
+                        width = 1.dp,
+                        color = borderColor,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .weight(7f)
+                    .background(Color(0xFFFFFFFF), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp)
+            ) {
                 BasicTextField(
                     value = value,
-                    onValueChange = onValueChange,
+                    onValueChange = {},
+                    singleLine = true,
+                    readOnly = true,
                     textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
                     modifier = Modifier
                         .fillMaxSize()
                         .onFocusChanged { focusState -> isFocused = focusState.isFocused },
-                    singleLine = true,
                     decorationBox = { innerTextField ->
-                        Box(Modifier.fillMaxWidth()) {
+                        Box(
+                            Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
                             if (value.isEmpty()) Text(label, color = Color.Gray)
                             innerTextField()
                         }
@@ -158,13 +174,9 @@ fun InputFieldWithIcon(label: String, value: String, onValueChange: (String) -> 
                         .align(Alignment.CenterEnd)
                         .padding(end = 8.dp)
                         .size(24.dp)
+                        .clickable { onClick() }
                 )
             }
-            Divider(
-                color = Color(0xFFBBBBBB),
-                thickness = 2.dp,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }

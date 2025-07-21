@@ -9,7 +9,8 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.storage
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.zikkeunzikkeun.rocktalk.dto.UserInfoDto
+import com.zikkeunzikkeun.rocktalk.dto.CenterInfoData
+import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -17,6 +18,12 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlin.collections.get
 
+private val userInfoCache = mutableMapOf<String, UserInfoData?>()
+private var centerInfoListCache: List<CenterInfoData>? = null
+
+fun clearUserInfoCache(){
+    userInfoCache.clear()
+}
 fun firebaseLoginWithProviderToken(
     provider: String,
     accessToken: String,
@@ -29,14 +36,12 @@ fun firebaseLoginWithProviderToken(
 
     CoroutineScope(Dispatchers.IO).launch {
         try {
-            // provider에 따라 Function 이름 결정
             val functionName = when (provider.uppercase()) {
                 "KAKAO" -> "kakaoCustomAuth"
                 "NAVER" -> "naverCustomAuth"
                 else -> throw IllegalArgumentException("Unsupported provider: $provider")
             }
 
-            // Firebase Function 호출
             val result = functions
                 .getHttpsCallable(functionName)
                 .call(mapOf("token" to accessToken))
@@ -45,7 +50,6 @@ fun firebaseLoginWithProviderToken(
             val customToken = (result.data as Map<*, *>)["custom_token"] as String
             Log.d("FirebaseAuth", "받은 커스텀 토큰: $customToken")
 
-            // Firebase 로그인
             auth.signInWithCustomToken(customToken).await()
             withContext(Dispatchers.Main) {
                 onSuccess()
@@ -80,15 +84,15 @@ suspend fun uploadProfileImageAndGetUrl(
 }
 
 suspend fun callUpdateUserInfoCloudFunction(
-    userInfoDto: UserInfoDto
+    userInfoData: UserInfoData
 ): Boolean = withContext(Dispatchers.IO) {
     val gson = Gson()
-    val json = gson.toJson(userInfoDto)
+    val json = gson.toJson(userInfoData)
     val mapType = object : TypeToken<Map<String, Any?>>() {}.type
     val data: MutableMap<String, Any?> = gson.fromJson(json, mapType)
 
-    if (!userInfoDto.profileImageUrl.isNullOrBlank()) {
-        data["profileImageUrl"] = userInfoDto.profileImageUrl
+    if (!userInfoData.profileImageUrl.isNullOrBlank()) {
+        data["profileImageUrl"] = userInfoData.profileImageUrl
     }
 
     try {
@@ -105,20 +109,60 @@ suspend fun callUpdateUserInfoCloudFunction(
     }
 }
 
-suspend fun getUserInfo(userId: String): UserInfoDto? = withContext(Dispatchers.IO) {
+suspend fun getUserInfo(userId: String): UserInfoData? = withContext(Dispatchers.IO) {
+    // 캐시 확인
+    userInfoCache[userId]?.let { return@withContext it }
+
     val data = hashMapOf("userId" to userId)
-    Log.i("userid", userId)
     return@withContext try {
         val functions = FirebaseFunctions.getInstance("asia-northeast3")
         val result = Tasks.await(
             functions.getHttpsCallable("getUserInfo").call(data)
         )
         val map = result.data as? Map<*, *>
+        val userMap = map?.get("user") as? Map<*, *>
         val gson = Gson()
-        val jsonString = gson.toJson(map)
-        gson.fromJson(jsonString, UserInfoDto::class.java)
+        val jsonString = gson.toJson(userMap)
+        val userInfo = gson.fromJson(jsonString, UserInfoData::class.java)
+
+        // 캐시에 저장
+        userInfoCache[userId] = userInfo
+
+        userInfo
     } catch (e: Exception) {
         Log.e("getUserInfo error", e.toString())
         null
     }
 }
+
+suspend fun getCenterList(): List<CenterInfoData>? = withContext(Dispatchers.IO) {
+
+    centerInfoListCache?.let { return@withContext it }
+
+    return@withContext try {
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        val result = Tasks.await(
+            functions.getHttpsCallable("getCenterList").call()
+        )
+
+        val data = result.data as? Map<*, *>
+        val centerListRaw = data?.get("centerData") as? List<Map<String, Any>>
+
+        if (centerListRaw != null) {
+            val gson = Gson()
+            val jsonString = gson.toJson(centerListRaw)
+            val type = object : TypeToken<List<CenterInfoData>>() {}.type
+            val centerList: List<CenterInfoData> = gson.fromJson(jsonString, type)
+
+            centerInfoListCache = centerList
+
+            centerList
+        } else {
+            null
+        }
+    } catch (e: Exception){
+        Log.e("getCenterList error", e.toString())
+        null
+    }
+}
+
