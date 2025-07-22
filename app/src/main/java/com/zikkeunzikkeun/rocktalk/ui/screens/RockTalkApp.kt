@@ -51,7 +51,7 @@ fun RockTalkApp(
                 }
 
                 composable("main_screen") {
-                    MainScreen()
+                    MainScreen(navController,userInfo?: UserInfoData())
                 }
 
                 composable("user_profile_screen") {
@@ -60,6 +60,9 @@ fun RockTalkApp(
                         userInfo = userInfo,
                         setUserInfo = setUserInfo
                     )
+                }
+                composable("board_list_screen") {
+                    BoardListScreen("",null,null) {}
                 }
             }
         }

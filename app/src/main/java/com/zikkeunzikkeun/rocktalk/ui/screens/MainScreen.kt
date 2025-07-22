@@ -3,13 +3,13 @@ package com.zikkeunzikkeun.rocktalk.ui.screens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,16 +23,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SearchBar
+import com.zikkeunzikkeun.rocktalk.R
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,55 +36,106 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.zikkeunzikkeun.rocktalk.dto.CenterInfoData
+import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonCenterSelectDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.InfoCard
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(){
+fun MainScreen(navController: NavController, userInfo: UserInfoData){
+
+    var centerInfo by remember { mutableStateOf(CenterInfoData(
+        centerId = userInfo.centerId,
+        centerName = userInfo.centerName)
+    )}
+    var isOpenCenterDialog by remember { mutableStateOf(false) }
+
     val imageUrls = listOf(
         "https://via.placeholder.com/300x200?text=Image1",
-        "https://via.placeholder.com/300x200?text=Image2"
+        "https://via.placeholder.com/300x200?text=Image2",
+        "https://via.placeholder.com/300x200?text=Image3",
+        "https://via.placeholder.com/300x200?text=Image4",
+        "https://via.placeholder.com/300x200?text=Image5"
     )
 
     var searchQuery by remember { mutableStateOf("") }
     val pagerState = rememberPagerState(
+        initialPage = 0,
         pageCount = { imageUrls.size }
     )
+
     val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    ambientColor = Color.Black.copy(alpha = 0.15f),
+                    spotColor = Color.Black.copy(alpha = 0.3f)
+                )
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFF2F2F2))
+                .clickable { isOpenCenterDialog = true }
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "검색",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "센터명 검색",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
 
-        // 1. SearchBar (Material3)
-        SearchBar(
-            query = searchQuery,
-            onQueryChange = { searchQuery = it },
-            onSearch = { /* search logic */ },
-            active = false,
-            onActiveChange = {},
-            placeholder = { Text("센터명을 입력하세요.") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "검색") },
-            modifier = Modifier.fillMaxWidth()
-        ) {}
+        Spacer(modifier = Modifier.height(18.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.rock_icon),
+                contentDescription = "기본 아이콘",
+                modifier = Modifier
+                    .size(40.dp)
+                    .padding(end = 8.dp)
+            )
+            Text(
+                text = centerInfo.centerName,
+                style = MaterialTheme.typography.headlineSmall
+            )
+        }
 
-        // 2. Title
-        Text(
-            text = "더클라임 강남점",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        // 3. Carousel (HorizontalPager)
+        // HorizontalPager
         HorizontalPager(
-            pageCount = imageUrls.size,   // 여기에 pageCount 직접 명시
             state = pagerState,
-            pageSize = PageSize.Fixed(120.dp), // 고정 크기로 여러 개 보이게
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSize = PageSize.Fixed(120.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 100.dp),
             pageSpacing = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,9 +153,8 @@ fun MainScreen(){
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
-        // 4. Page Indicator
         Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
@@ -129,10 +175,14 @@ fun MainScreen(){
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 5. 공지사항 카드
         InfoCard(
             title = "공지사항",
             icon = Icons.Default.Notifications,
+            onClickIcon = {
+                navController.navigate("board_list_screen") {
+                    popUpTo("main_screen") { inclusive = true }
+                }
+            },
             items = listOf(
                 "운영시간 안내! 이번 주 운영 일정 확인하세요!",
                 "이벤트: 이 달의 챌린지 완료하고 선물 받자!",
@@ -147,6 +197,11 @@ fun MainScreen(){
         InfoCard(
             title = "함께해요",
             icon = Icons.Default.Face,
+            onClickIcon = {
+                navController.navigate("board_list_screen") {
+                    popUpTo("main_screen") { inclusive = true }
+                }
+            },
             items = listOf(
                 "주말 모임! 도쿄와 오븐 루트 클라이머 같이 하실 분",
                 "참여는 O.K! 지원자 용무가 많이 오릅니다",
@@ -155,5 +210,17 @@ fun MainScreen(){
             )
         )
     }
+    CommonCenterSelectDialog(
+        isShow = isOpenCenterDialog,
+        onDismiss = {isOpenCenterDialog = false},
+        onCenterClick = { centerInfoData ->
+            centerInfo = CenterInfoData(
+                centerId = centerInfoData.centerId,
+                centerName = centerInfoData.centerName
+            )
+            isOpenCenterDialog = false
+        }
+    )
+
 }
 

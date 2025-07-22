@@ -1,5 +1,8 @@
 package com.zikkeunzikkeun.rocktalk.ui.components
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -24,7 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun InfoCard(title: String, icon: ImageVector, items: List<String>) {
+fun InfoCard(title: String, icon: ImageVector, items: List<String>, onClickIcon: ()->Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -45,7 +49,9 @@ fun InfoCard(title: String, icon: ImageVector, items: List<String>) {
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = "더보기",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable { onClickIcon() },
                 )
             }
 
@@ -61,3 +67,11 @@ fun InfoCard(title: String, icon: ImageVector, items: List<String>) {
         }
     }
 }
+
+@Composable
+fun BoardCard(
+
+){
+
+}
+
