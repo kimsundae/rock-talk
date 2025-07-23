@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import com.zikkeunzikkeun.rocktalk.R
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,24 +46,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.zikkeunzikkeun.rocktalk.api.getUserInfo
 import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonCenterSelectDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.components.InfoCard
+import com.zikkeunzikkeun.rocktalk.util.getUserId
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(navController: NavController, userInfo: UserInfoData){
-
-    var centerInfo by remember { mutableStateOf(CenterInfoData(
-        centerId = userInfo.centerId,
-        centerName = userInfo.centerName)
-    )}
+fun MainScreen(navController: NavController){
+    var userInfo by remember { mutableStateOf<UserInfoData>(UserInfoData()) }
+    var centerInfo by remember { mutableStateOf(CenterInfoData())}
     var selectedCenter by remember { mutableStateOf(CenterInfoData())}
     var isOpenCenterDialog by remember { mutableStateOf(false) }
     var isOpenSelectConfirm by remember { mutableStateOf(false) }
-    
+    var isLoading by remember { mutableStateOf(false) }
     val imageUrls = listOf(
         "https://via.placeholder.com/300x200?text=Image1",
         "https://via.placeholder.com/300x200?text=Image2",
@@ -71,12 +72,23 @@ fun MainScreen(navController: NavController, userInfo: UserInfoData){
         "https://via.placeholder.com/300x200?text=Image5"
     )
 
-    var searchQuery by remember { mutableStateOf("") }
     val pagerState = rememberPagerState(
         initialPage = 0,
         pageCount = { imageUrls.size }
     )
-
+    LaunchedEffect(Unit) {
+        isLoading = true
+        val userId = getUserId()
+        if (!userId.isNullOrEmpty()) {
+            val userInfoData = getUserInfo(userId) ?: UserInfoData()
+            userInfo = userInfoData
+            centerInfo = CenterInfoData(
+                centerId = userInfoData.centerId,
+                centerName = userInfoData.centerName
+            )
+        }
+        isLoading = false
+    }
     val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = Modifier
@@ -237,5 +249,6 @@ fun MainScreen(navController: NavController, userInfo: UserInfoData){
         onConfirm = { centerInfo = selectedCenter.copy() },
         onCancel = { isOpenSelectConfirm = false }
     )
+    CommonProgress(isLoading = isLoading);
 }
 

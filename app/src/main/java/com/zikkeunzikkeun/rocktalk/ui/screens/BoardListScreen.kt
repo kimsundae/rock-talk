@@ -1,5 +1,6 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,10 +32,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.zikkeunzikkeun.rocktalk.api.getBoardList
 import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.theme.LightGreen40
 import com.zikkeunzikkeun.rocktalk.ui.theme.Orange40
 
@@ -46,12 +49,15 @@ fun BoardListScreen(
     centerId: String?,
     centerName: String?
 ){
-    var items by remember { mutableStateOf(listOf(
-        BoardInfoData(boardTitle = "운영시간 안내! 이번 주 운영 일정 확인하세요!", registerName = "더클라임 강남점"),
-        BoardInfoData(boardTitle = "이벤트: 이 달의 챌린지 완료하고 선물 받자!", registerName = "더클라임 강남점"),
-        BoardInfoData(boardTitle = "새로운 장비! 나이로이벤트 무료 개방 안내", registerName = "더클라임 강남점"),
-        BoardInfoData(boardTitle = "주의공지! 사고 예방을 위한 기본 규칙", registerName = "더클라임 강남점")
-    ))}
+    var boardList: List<BoardInfoData> by remember { mutableStateOf(emptyList<BoardInfoData>()) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        val boardListData = getBoardList(boardType ?: "", centerId = centerId ?: "")
+        boardList = boardListData
+        isLoading = false
+    }
 
     Box(modifier = Modifier.fillMaxWidth()) {
         // 내용 카드
@@ -79,24 +85,24 @@ fun BoardListScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start // SpaceBetween 대신 Start로!
+                    horizontalArrangement = Arrangement.Start
                 ) {
                     Text(
                         "제목",
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(0.7f) // 70%
+                        modifier = Modifier.weight(0.7f)
                     )
                     Text(
                         "등록자",
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(0.3f) // 30%
+                        modifier = Modifier.weight(0.3f)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // 목록
-                items.forEach { boardInfo ->
+                boardList.forEach { boardInfoData ->
                     @OptIn(ExperimentalMaterial3Api::class)
                     Card(
                         modifier = Modifier
@@ -106,7 +112,7 @@ fun BoardListScreen(
                         elevation = CardDefaults.cardElevation(2.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         onClick = {
-                            navController.navigate("board_info_screen?centerId=${boardInfo.centerId}&userId=${userId}&boardId=${boardInfo.boardId}") {
+                            navController.navigate("board_info_screen?userId=${userId}&boardId=${boardInfoData.boardId}") {
                                 popUpTo("board_list_screen") { inclusive = true }
                             }
                         }
@@ -118,14 +124,21 @@ fun BoardListScreen(
                             horizontalArrangement = Arrangement.Start
                         ) {
                             Text(
-                                text = boardInfo.boardTitle,
+                                text = boardInfoData.boardTitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(0.7f)
                             )
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(16.dp)
+                                    .padding(horizontal = 8.dp)
+                                    .background(Color.LightGray.copy(alpha = 0.5f))
+                            )
                             Text(
-                                text = boardInfo.registerName,
+                                text = boardInfoData.registerName,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -139,7 +152,7 @@ fun BoardListScreen(
 
         Button(
             onClick = {
-                navController.navigate("board_regist_screen?centerId=${centerId}&userId=${userId}&boardType=${boardType}") {
+                navController.navigate("board_regist_screen?centerId=${centerId}&userId=${userId}&userName=${userName}&boardType=${boardType}") {
                     popUpTo("board_list_screen") { inclusive = true }
                 }
             },
@@ -156,4 +169,5 @@ fun BoardListScreen(
             Text("글 등록하기", style = MaterialTheme.typography.labelMedium)
         }
     }
+    CommonProgress(isLoading = isLoading)
 }

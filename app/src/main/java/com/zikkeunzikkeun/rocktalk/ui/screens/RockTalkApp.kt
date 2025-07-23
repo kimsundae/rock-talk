@@ -1,12 +1,12 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,34 +16,35 @@ import androidx.navigation.navArgument
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.BottomNavBar
 import com.zikkeunzikkeun.rocktalk.ui.theme.RockTalkTheme
+import androidx.compose.runtime.*
+import com.zikkeunzikkeun.rocktalk.api.getUserInfo
+import com.zikkeunzikkeun.rocktalk.util.getUserId
 
 @Composable
-fun RockTalkApp(
-    userInfo: UserInfoData?,
-    setUserInfo: (UserInfoData?) -> Unit
-) {
+fun RockTalkApp() {
+    val userId = getUserId()
+    var userInfo by remember { mutableStateOf<UserInfoData?>(UserInfoData()) }
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    SideEffect {
-        Log.i("RockTalkApp", "Recomposed with userInfo = ${userInfo?.editYn}")
+    LaunchedEffect(Unit) {
+        val userId = getUserId()
+        if (!userId.isNullOrEmpty()) {
+            userInfo = getUserInfo(userId)
+        }
     }
+
     RockTalkTheme {
         Scaffold(
             bottomBar = {
-                if (
-                    currentRoute != "login_screen" &&
-                    !(currentRoute == "user_profile_screen" && userInfo?.editYn == false)
-                ) {
+                if (currentRoute != "login_screen")
                     BottomNavBar(navController)
-                }
             }
         ) { innerPadding ->
             NavHost(
                 navController = navController,
                 startDestination = when {
-                    userInfo == null -> "login_screen"
-                    userInfo.editYn == false -> "user_profile_screen"
+                    userId.isNullOrBlank() -> "login_screen"
                     else -> "main_screen"
                 },
                 modifier = Modifier.padding(innerPadding)
@@ -53,15 +54,11 @@ fun RockTalkApp(
                 }
 
                 composable("main_screen") {
-                    MainScreen(navController,userInfo?: UserInfoData())
+                    MainScreen(navController)
                 }
 
                 composable("user_profile_screen") {
-                    UserProfileScreen(
-                        navController = navController,
-                        userInfo = userInfo,
-                        setUserInfo = setUserInfo
-                    )
+                    UserProfileScreen(navController = navController)
                 }
 
                 composable(
@@ -85,10 +82,11 @@ fun RockTalkApp(
                 }
 
                 composable(
-                    route = "board_regist_screen?centerId={centerId}&userId={userId}&boardType={boardType}",
+                    route = "board_regist_screen?centerId={centerId}&userId={userId}&userName={userName}&boardType={boardType}",
                     arguments = listOf(
                         navArgument("centerId") { type = NavType.StringType; },
                         navArgument("userId") { type = NavType.StringType; },
+                        navArgument("userName") { type = NavType.StringType; },
                         navArgument("boardType") { type = NavType.StringType; }
                     )
                 ){
@@ -97,7 +95,23 @@ fun RockTalkApp(
                         navController,
                         centerId = backStackEntry.arguments?.getString("centerId"),
                         userId = backStackEntry.arguments?.getString("userId"),
-                        boardType = backStackEntry.arguments?.getString("boardType")
+                        boardType = backStackEntry.arguments?.getString("boardType"),
+                        userName = backStackEntry.arguments?.getString("userName")
+                    )
+                }
+
+                composable(
+                    route = "board_info_screen?userId={userId}&boardId={boardId}",
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.StringType; },
+                        navArgument("boardId") { type = NavType.StringType; }
+                    )
+                ){
+                        backStackEntry ->
+                    BoardInfoScreen(
+                        navController,
+                        boardId = backStackEntry.arguments?.getString("boardId"),
+                        userId = backStackEntry.arguments?.getString("userId"),
                     )
                 }
             }

@@ -1,6 +1,5 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,18 +38,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.zikkeunzikkeun.rocktalk.api.saveBoard
+import com.zikkeunzikkeun.rocktalk.data.AlertDialogData
 import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.theme.LightGreen40
+import kotlinx.coroutines.launch
 
 @Composable
 fun BoardRegistScreen(
     navController: NavController,
     centerId:String?,
     userId:String?,
+    userName:String?,
     boardType:String?
 ){
-    var registBoardInfo by remember { mutableStateOf(BoardInfoData(centerId = centerId ?: "")) }
-    Log.i("boardinfo", registBoardInfo.toString())
+    var registBoardInfo by remember { mutableStateOf(BoardInfoData(
+        centerId = centerId ?: "",
+        boardType = boardType ?: "",
+        registerId = userId ?: "",
+        registerName = userName ?: "")
+    )}
+    var isOpenDialog by remember { mutableStateOf(false) }
+    var isOpenSaveDialog by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var dialogData by remember { mutableStateOf(AlertDialogData(){isOpenDialog = false}) }
+    val coroutineScope = rememberCoroutineScope()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -88,13 +106,13 @@ fun BoardRegistScreen(
                                     .padding(top = 20.dp, start = 10.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Notifications,
+                                    if (boardType == "0") Icons.Default.Notifications else Icons.Default.Face,
                                     contentDescription = null,
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(32.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "공지사항",
+                                    if(boardType == "0") "공지사항" else "함께해요",
                                     style = MaterialTheme.typography.headlineLarge.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold)
                                 )
                             }
@@ -139,7 +157,7 @@ fun BoardRegistScreen(
                                         decorationBox = { innerTextField ->
                                             if (registBoardInfo.boardTitle.isEmpty()) {
                                                 Text(
-                                                    text = "내용을 입력하세요",
+                                                    text = "제목을 입력하세요",
                                                     color = Color.Gray,
                                                     fontSize = 16.sp
                                                 )
@@ -201,9 +219,28 @@ fun BoardRegistScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // 하단 버튼
                 Button(
-                    onClick = {},
+                    onClick = {
+                        when {
+                            registBoardInfo.boardTitle.isNullOrBlank() -> {
+                                dialogData = dialogData.copy(
+                                    title = "알림",
+                                    text = "제목을 입력해주세요."
+                                )
+                                isOpenDialog = true
+                                return@Button
+                            }
+                            registBoardInfo.boardContent.isNullOrBlank() -> {
+                                dialogData = dialogData.copy(
+                                    title = "알림",
+                                    text = "내용을 입력해주세요."
+                                )
+                                isOpenDialog = true
+                                return@Button
+                            }
+                        }
+                        isOpenSaveDialog = true
+                    },
                     shape = RoundedCornerShape(30),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF2B166),
@@ -219,4 +256,30 @@ fun BoardRegistScreen(
             }
         }
     }
+    CommonAlertDialog(
+        isShow = isOpenDialog,
+        onDismiss = dialogData.onDismiss,
+        title = dialogData.title,
+        text = dialogData.text
+    )
+    CommonConfirmDialog(
+        isShow = isOpenSaveDialog,
+        onDismiss = {isOpenSaveDialog = false},
+        title = "알림",
+        text = "저장하시겠습니까?",
+        confirmText = "확인",
+        cancelText = "취소",
+        onConfirm = {
+            coroutineScope.launch {
+                isLoading = true
+                val result = saveBoard(registBoardInfo)
+                dialogData = dialogData.copy(title = "알림", text = if(result) "게시글이 저장되었습니다." else "일시적인 오류가 발생되어 저장에 실패하였습니다."){
+                    navController.navigateUp()
+                }
+                isLoading = false
+                isOpenDialog = true
+            }
+        }
+    )
+    CommonProgress(isLoading = isLoading)
 }

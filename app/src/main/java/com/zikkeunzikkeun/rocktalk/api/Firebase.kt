@@ -9,6 +9,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.storage
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
 import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import kotlinx.coroutines.CoroutineScope
@@ -21,9 +22,7 @@ import kotlin.collections.get
 private val userInfoCache = mutableMapOf<String, UserInfoData?>()
 private var centerInfoListCache: List<CenterInfoData>? = null
 
-fun clearUserInfoCache(){
-    userInfoCache.clear()
-}
+fun clearUserInfoCache(){ userInfoCache.clear() }
 fun firebaseLoginWithProviderToken(
     provider: String,
     accessToken: String,
@@ -111,7 +110,7 @@ suspend fun callUpdateUserInfoCloudFunction(
 
 suspend fun getUserInfo(userId: String): UserInfoData? = withContext(Dispatchers.IO) {
     // 캐시 확인
-    userInfoCache[userId]?.let { return@withContext it }
+    userInfoCache[userId]?.let { return@withContext it.copy() }
 
     val data = hashMapOf("userId" to userId)
     return@withContext try {
@@ -128,7 +127,7 @@ suspend fun getUserInfo(userId: String): UserInfoData? = withContext(Dispatchers
         // 캐시에 저장
         userInfoCache[userId] = userInfo
 
-        userInfo
+        userInfo.copy()
     } catch (e: Exception) {
         Log.e("getUserInfo error", e.toString())
         null
@@ -166,3 +165,75 @@ suspend fun getCenterList(): List<CenterInfoData>? = withContext(Dispatchers.IO)
     }
 }
 
+suspend fun saveBoard(boardInfoData: BoardInfoData) = withContext(Dispatchers.IO){
+
+    return@withContext try{
+        val gson = Gson()
+        val json = gson.toJson(boardInfoData)
+        val mapType = object : TypeToken<Map<String, Any?>>() {}.type
+        val data: MutableMap<String, Any?> = gson.fromJson(json, mapType)
+
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        Tasks.await(
+            functions
+                .getHttpsCallable("saveBoard")
+                .call(data)
+        )
+        true
+    }catch (e: Exception){
+        Log.e("saveBoard error", e.toString())
+        false
+    }
+}
+
+suspend fun getBoardById(boardId: String): BoardInfoData? = withContext(Dispatchers.IO) {
+    return@withContext try {
+        val data = mapOf("boardId" to boardId)
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        Log.i("getBoardById", boardId)
+        val result = Tasks.await(
+            functions
+                .getHttpsCallable("getBoardById")
+                .call(data)
+        )
+
+        val resultMap = result.data as? Map<*, *>
+        val boardMap = resultMap?.get("board") as? Map<*, *>
+
+        val gson = Gson()
+        val json = gson.toJson(boardMap)
+        gson.fromJson(json, BoardInfoData::class.java)
+    } catch (e: Exception) {
+        Log.e("getBoardById error", e.toString())
+        null
+    }
+}
+
+suspend fun getBoardList(boardType: String, centerId: String): List<BoardInfoData> = withContext(Dispatchers.IO) {
+    return@withContext try {
+        val data = mapOf(
+            "boardType" to boardType,
+            "centerId" to centerId
+        )
+
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+//        functions.useEmulator("10.0.2.2", 5001)
+        val result = Tasks.await(
+            functions
+                .getHttpsCallable("getBoardList")
+                .call(data)
+        )
+
+        val resultMap = result.data as? Map<*, *>
+        val boardListRaw = resultMap?.get("boardList") as? List<*>
+
+        val gson = Gson()
+        val json = gson.toJson(boardListRaw)
+        val type = object : TypeToken<List<BoardInfoData>>() {}.type
+        Log.i("getBoardList", gson.fromJson<List<BoardInfoData>>(json, type).toString())
+        gson.fromJson<List<BoardInfoData>>(json, type)
+    } catch (e: Exception) {
+        Log.e("getBoardList error", e.toString())
+        emptyList<BoardInfoData>()
+    }
+}

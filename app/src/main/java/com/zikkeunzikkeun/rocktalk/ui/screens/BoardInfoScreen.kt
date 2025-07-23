@@ -14,11 +14,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,14 +33,25 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.zikkeunzikkeun.rocktalk.api.getBoardById
+import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 
 @Composable
 fun BoardInfoScreen(
     navController: NavController,
-    centerId:String,
-    boardId:String,
-    userId:String
+    boardId:String?,
+    userId:String?
 ){
+    var boardInfo by remember { mutableStateOf<BoardInfoData>(BoardInfoData()) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        val boardInfoData = getBoardById(boardId = boardId ?: "") ?: BoardInfoData()
+        boardInfo = boardInfoData
+        isLoading = false
+    }
     Column(
         modifier = Modifier
 //            .background(color = Color(0xFFF8F6F7)) // 전체 연핑크 배경
@@ -52,14 +69,14 @@ fun BoardInfoScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Notifications,
+                        if (boardInfo.boardType == "0") Icons.Default.Notifications else Icons.Default.Face,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = Color(0xFF6595B5)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "공지사항",
+                        if (boardInfo.boardType == "0") "공지사항" else "함께해요",
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
@@ -80,7 +97,7 @@ fun BoardInfoScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            "[운영시간 안내] 이번 주 운영 일정 확인하세요!",
+                            boardInfo.boardTitle,
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = Color(0xFF6C7A89),
                                 textDecoration = TextDecoration.Underline
@@ -97,7 +114,7 @@ fun BoardInfoScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            "2025-01-01 12:05",
+                            boardInfo.createDate,
                             style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF6C7A89))
                         )
                     }
@@ -110,16 +127,10 @@ fun BoardInfoScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            "더클라임 강남점",
+                            boardInfo.registerName,
                             style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF6C7A89))
                         )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        "내용",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF666666)
-                    )
                 }
             }
         }
@@ -138,38 +149,13 @@ fun BoardInfoScreen(
             ) {
                 Column {
                     Text(
-                        "안녕하세요. 더클라임 강남점입니다.\n이번 주 운영시간은 아래와 같이 안내드립니다.\n방문 예정이신 회원분들께서는 참고해 주세요!\n\n" +
-                                "[2025년 1월 1일(월) ~ 2025년 1월 7일 (일)]\n" +
-                                "월/수 13:00 ~ 22:00 / 정상운영\n" +
-                                "화요일 13:00 ~ 22:00 / 정상운영\n" +
-                                "목요일 13:00 ~ 22:00 / 정상운영\n" +
-                                "금요일 13:00 ~ 22:00 / 푸른 좌석 일부 구역 제한\n" +
-                                "토요일 10:00 ~ 20:00 / 정상운영\n" +
-                                "일요일 10:00 ~ 20:00 / 푸른운영\n",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF222222)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    // 공지사항(리스트)
-                    Text(
-                        "\uD83D\uDCCC 공지사항",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFFF2B166))
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        "1) 1/4(목)은 일부 푸른 작업이 진행되어, 푸른존 A는 이용이 제한됩니다.\n" +
-                                "2) 신규 푸른 오픈은 1/5(금) 예정입니다.\n",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF222222)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        "더운 날씨에 건강 유의하시고, 즐거운 클라이밍 되시길 바랍니다. 감사합니다.\n\n- 더클라임 강남점 드림 -",
+                        boardInfo.boardContent,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF222222)
                     )
                 }
             }
         }
+        CommonProgress(isLoading = isLoading)
     }
 }

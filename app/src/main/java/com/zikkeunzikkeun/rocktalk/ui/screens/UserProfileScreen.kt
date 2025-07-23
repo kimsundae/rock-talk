@@ -48,17 +48,15 @@ import com.zikkeunzikkeun.rocktalk.ui.components.InputFieldWithIcon
 import com.zikkeunzikkeun.rocktalk.ui.theme.LightGray40
 import com.zikkeunzikkeun.rocktalk.ui.theme.Orange40
 import com.zikkeunzikkeun.rocktalk.ui.theme.Strings
-import com.zikkeunzikkeun.rocktalk.util.moveToLogin
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 @Composable
 fun UserProfileScreen(
-    navController: NavController,
-    userInfo: UserInfoData?,
-    setUserInfo: (UserInfoData?) -> Unit
+    navController: NavController
 ) {
+    var userInfo by remember { mutableStateOf<UserInfoData>(UserInfoData()) }
     val context = LocalContext.current
     val userId: String? = getUserId()
     var age by remember { mutableStateOf("") }
@@ -83,7 +81,8 @@ fun UserProfileScreen(
     ) { uri -> selectedUri = uri }
 
     // firebase storage 이미지 설정
-    val imageModel = selectedUri ?: userInfo?.profileImageUrl
+    val imageModel = selectedUri ?: userInfo.profileImageUrl
+
     val imageLoader = remember {
         ImageLoader.Builder(context)
             .crossfade(true)
@@ -108,20 +107,16 @@ fun UserProfileScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(userId) {
+    LaunchedEffect(Unit) {
         isLoading = true
-        if (userId.isNullOrEmpty() || userInfo == null) {
-            dialogData = AlertDialogData(
-                "오류",
-                "사용자 정보를 불러올 수 없습니다. \n다시 로그인 해주시기 바랍니다.",
-                "확인"
-            ){
-                isShowDialog = false
-                moveToLogin(navController)
-            }
-            isShowDialog = true
-        } else {
-            userInfo.let {
+        val userId = getUserId()
+        if (!userId.isNullOrEmpty()) {
+            val result = getUserInfo(userId)
+            result?.let {
+                Log.d("DEBUG", "새 userInfo: ${it}, 기존: $userInfo")
+                userInfo = it
+                Log.d("DEBUG", "할당 후 userInfo: $userInfo") // 이게 진짜 할당 결과!
+                userInfo = it
                 age = it.age.toString()
                 gender = it.gender
                 nickname = it.nickname
@@ -269,20 +264,17 @@ fun UserProfileScreen(
                 isLoading = false
                 if (success) {
                     clearUserInfoCache()
-                    val updatedUserInfo = getUserInfo(userId ?: "")
-                    setUserInfo(updatedUserInfo?.copy())
-
                     dialogData = AlertDialogData(
                         title = "알림",
                         text = "저장에 성공했습니다.",
                         buttonText = "확인"
                     ){
                         isShowDialog = false
+                        navController.navigate("main_screen") {
+                            popUpTo("user_profile_screen") { inclusive = true }
+                        }
                     }
                     isShowDialog = true
-                    navController.navigate("main_screen") {
-                        popUpTo("user_profile_screen") { inclusive = true }
-                    }
                 }
                 else {
                     dialogData = AlertDialogData(
