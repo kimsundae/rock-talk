@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.zikkeunzikkeun.rocktalk.api.getCenterList
-import com.zikkeunzikkeun.rocktalk.dto.CenterInfoData
+import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource

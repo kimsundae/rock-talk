@@ -1,4 +1,4 @@
-package com.zikkeunzikkeun.rocktalk.dto
+package com.zikkeunzikkeun.rocktalk.data
 
 data class AlertDialogData(
     val title: String = "",

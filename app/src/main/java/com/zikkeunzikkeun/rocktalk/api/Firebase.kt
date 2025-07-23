@@ -9,8 +9,8 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.storage
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.zikkeunzikkeun.rocktalk.dto.CenterInfoData
-import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
+import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
+import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

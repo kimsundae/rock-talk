@@ -36,8 +36,8 @@ import com.zikkeunzikkeun.rocktalk.api.clearUserInfoCache
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
 import com.zikkeunzikkeun.rocktalk.util.getUserId
 import com.zikkeunzikkeun.rocktalk.api.uploadProfileImageAndGetUrl
-import com.zikkeunzikkeun.rocktalk.dto.AlertDialogData
-import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
+import com.zikkeunzikkeun.rocktalk.data.AlertDialogData
+import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonCenterSelectDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog

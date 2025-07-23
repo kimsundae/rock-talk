@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
-import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
+import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.util.getUserId
 import androidx.compose.runtime.*

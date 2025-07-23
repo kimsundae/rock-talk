@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
-import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
+import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 
 @Composable
 fun LoadingScreen(navController: NavHostController, userInfo: UserInfoData?) {

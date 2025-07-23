@@ -45,9 +45,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.zikkeunzikkeun.rocktalk.dto.CenterInfoData
-import com.zikkeunzikkeun.rocktalk.dto.UserInfoData
+import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
+import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonCenterSelectDialog
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.InfoCard
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -58,8 +59,10 @@ fun MainScreen(navController: NavController, userInfo: UserInfoData){
         centerId = userInfo.centerId,
         centerName = userInfo.centerName)
     )}
+    var selectedCenter by remember { mutableStateOf(CenterInfoData())}
     var isOpenCenterDialog by remember { mutableStateOf(false) }
-
+    var isOpenSelectConfirm by remember { mutableStateOf(false) }
+    
     val imageUrls = listOf(
         "https://via.placeholder.com/300x200?text=Image1",
         "https://via.placeholder.com/300x200?text=Image2",
@@ -76,7 +79,9 @@ fun MainScreen(navController: NavController, userInfo: UserInfoData){
 
     val coroutineScope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -179,7 +184,7 @@ fun MainScreen(navController: NavController, userInfo: UserInfoData){
             title = "공지사항",
             icon = Icons.Default.Notifications,
             onClickIcon = {
-                navController.navigate("board_list_screen") {
+                navController.navigate("board_list_screen?userId=${userInfo.userId}&userName=${userInfo.nickname}&boardType=0&centerId=${centerInfo.centerId}&centerName=${centerInfo.centerName}") {
                     popUpTo("main_screen") { inclusive = true }
                 }
             },
@@ -198,7 +203,7 @@ fun MainScreen(navController: NavController, userInfo: UserInfoData){
             title = "함께해요",
             icon = Icons.Default.Face,
             onClickIcon = {
-                navController.navigate("board_list_screen") {
+                navController.navigate("board_list_screen?userId=${userInfo.userId}&userName=${userInfo.nickname}&boardType=1&centerId=${centerInfo.centerId}&centerName=${centerInfo.centerName}") {
                     popUpTo("main_screen") { inclusive = true }
                 }
             },
@@ -214,13 +219,23 @@ fun MainScreen(navController: NavController, userInfo: UserInfoData){
         isShow = isOpenCenterDialog,
         onDismiss = {isOpenCenterDialog = false},
         onCenterClick = { centerInfoData ->
-            centerInfo = CenterInfoData(
+            selectedCenter = CenterInfoData(
                 centerId = centerInfoData.centerId,
                 centerName = centerInfoData.centerName
             )
             isOpenCenterDialog = false
+            isOpenSelectConfirm = true
         }
     )
-
+    CommonConfirmDialog(
+        isShow = isOpenSelectConfirm,
+        onDismiss = { isOpenSelectConfirm = false },
+        title = "알림",
+        text = "센터를 변경하시겠습니까?",
+        confirmText = "확인",
+        cancelText = "취소",
+        onConfirm = { centerInfo = selectedCenter.copy() },
+        onCancel = { isOpenSelectConfirm = false }
+    )
 }
 
