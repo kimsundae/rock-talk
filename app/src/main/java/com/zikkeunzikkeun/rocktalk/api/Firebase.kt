@@ -1,7 +1,9 @@
 package com.zikkeunzikkeun.rocktalk.api
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.webkit.MimeTypeMap
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -11,6 +13,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
 import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
+import com.zikkeunzikkeun.rocktalk.data.RecordInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,13 +66,16 @@ fun firebaseLoginWithProviderToken(
     }
 }
 
-suspend fun uploadProfileImageAndGetUrl(
+suspend fun uploadMediaFileAndGetUrl(
+    context: Context,
     fileUri: Uri,
     filePath: String,
     fileType: String
 ): String? = withContext(Dispatchers.IO) {
     try {
-        val fileName = "${filePath}/${System.currentTimeMillis()}_${fileType}"
+        val mime = context.contentResolver.getType(fileUri)
+        val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "file"
+        val fileName = "${filePath}/${System.currentTimeMillis()}_${fileType}.$ext"
         val storageRef = Firebase.storage.reference.child(fileName)
         val uploadTask = storageRef.putFile(fileUri)
         Tasks.await(uploadTask)
@@ -235,5 +241,88 @@ suspend fun getBoardList(boardType: String, centerId: String): List<BoardInfoDat
     } catch (e: Exception) {
         Log.e("getBoardList error", e.toString())
         emptyList<BoardInfoData>()
+    }
+}
+
+suspend fun callSaveRecord(recordInfo: RecordInfoData): Boolean = withContext(Dispatchers.IO) {
+    return@withContext try {
+
+        val gson = Gson()
+        val json = gson.toJson(recordInfo)
+        val mapType = object : TypeToken<Map<String, Any?>>() {}.type
+        val data: MutableMap<String, Any?> = gson.fromJson(json, mapType)
+
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        Tasks.await(
+            functions
+                .getHttpsCallable("saveRecord")
+                .call(data)
+        )
+        true
+    } catch (e: Exception) {
+        Log.e("callSaveRecordCloudFunction error", e.toString())
+        false
+    }
+}
+
+suspend fun callGetRecord(userId: String, recordId: String): RecordInfoData = withContext(Dispatchers.IO) {
+    return@withContext try {
+        val data = mapOf(
+            "userId" to userId,
+            "recordId" to recordId
+        )
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        val result = Tasks.await(
+            functions
+                .getHttpsCallable("getRecord")
+                .call(data)
+        )
+
+        val resultMap = result.data as? Map<*, *>
+        val recordMap = resultMap?.get("record") as? Map<*, *>
+
+        if (recordMap != null) {
+            val gson = Gson()
+            val json = gson.toJson(recordMap)
+            gson.fromJson(json, RecordInfoData::class.java)
+        } else {
+            RecordInfoData()
+        }
+    } catch (e: Exception) {
+        Log.e("callGetRecord error", e.toString())
+        RecordInfoData()
+    }
+}
+
+suspend fun callGetRecordList(
+    userId: String? = null,
+    centerId: String? = null
+): List<RecordInfoData> = withContext(Dispatchers.IO) {
+    return@withContext try {
+        val data = mutableMapOf<String, Any?>()
+        userId?.let { data["userId"] = it }
+        centerId?.let { data["centerId"] = it }
+
+        val functions = FirebaseFunctions.getInstance("asia-northeast3")
+        val result = Tasks.await(
+            functions
+                .getHttpsCallable("getRecordList")
+                .call(data)
+        )
+
+        val resultMap = result.data as? Map<*, *>
+        val recordListRaw = resultMap?.get("recordList") as? List<*>
+
+        if (recordListRaw != null) {
+            val gson = Gson()
+            val json = gson.toJson(recordListRaw)
+            val type = object : TypeToken<List<RecordInfoData>>() {}.type
+            gson.fromJson<List<RecordInfoData>>(json, type)
+        } else {
+            emptyList()
+        }
+    } catch (e: Exception) {
+        Log.e("callGetRecordList error", e.toString())
+        emptyList()
     }
 }

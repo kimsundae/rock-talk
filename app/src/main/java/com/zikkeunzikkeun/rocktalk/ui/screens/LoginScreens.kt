@@ -72,7 +72,7 @@ fun LoginScreen(navController: NavHostController) {
                         token.accessToken,
                         onSuccess = {
                             isLoading = false;
-                            navController.navigate("loading_screen") {
+                            navController.navigate("main_screen") {
                                 popUpTo("login_screen") { inclusive = true }
                             }
                         },
@@ -103,11 +103,11 @@ fun LoginScreen(navController: NavHostController) {
                                 token.accessToken,
                                 onSuccess = {
                                     isLoading = false
-                                    navController.navigate("loading_screen") {
+                                    navController.navigate("main_screen") {
                                         popUpTo("login_screen") { inclusive = true }
                                     }
                                 },
-                                onFailure = {
+                                onFailure = {e->
                                     isLoading = false
                                     showErrorDialog = true
                                     Toast.makeText(context, "로그인 실패", Toast.LENGTH_SHORT).show()
@@ -140,7 +140,7 @@ fun LoginScreen(navController: NavHostController) {
                         accessToken.toString(),
                         onSuccess = {
                             isLoading = false;
-                            navController.navigate("loading_screen") {
+                            navController.navigate("main_screen") {
                                 popUpTo("login_screen") { inclusive = true }
                             }
                         },

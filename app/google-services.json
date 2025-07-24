@@ -14,14 +14,6 @@
       },
       "oauth_client": [
         {
-          "client_id": "274660562657-9fbgvcb6f6vgkvadobenglh27itl2545.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.zikkeunzikkeun.rocktalk",
-            "certificate_hash": "37468e53dadac197453f345df5c63c33f42dfe38"
-          }
-        },
-        {
           "client_id": "274660562657-4u3bie3gju02d22m2it6jlr05b4tvmj9.apps.googleusercontent.com",
           "client_type": 3
         }

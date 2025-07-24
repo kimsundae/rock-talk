@@ -1,5 +1,6 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
+import RecordScreen
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -19,6 +20,7 @@ import com.zikkeunzikkeun.rocktalk.ui.theme.RockTalkTheme
 import androidx.compose.runtime.*
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
 import com.zikkeunzikkeun.rocktalk.util.getUserId
+
 
 @Composable
 fun RockTalkApp() {
@@ -113,6 +115,10 @@ fun RockTalkApp() {
                         boardId = backStackEntry.arguments?.getString("boardId"),
                         userId = backStackEntry.arguments?.getString("userId"),
                     )
+                }
+
+                composable("record_screen") {
+                    RecordScreen(navController = navController)
                 }
             }
         }

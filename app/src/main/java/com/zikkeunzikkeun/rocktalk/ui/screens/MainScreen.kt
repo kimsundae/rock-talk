@@ -1,5 +1,6 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,6 +50,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
 import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonCenterSelectDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
@@ -63,6 +65,7 @@ fun MainScreen(navController: NavController){
     var selectedCenter by remember { mutableStateOf(CenterInfoData())}
     var isOpenCenterDialog by remember { mutableStateOf(false) }
     var isOpenSelectConfirm by remember { mutableStateOf(false) }
+    var isOpenAlert by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     val imageUrls = listOf(
         "https://via.placeholder.com/300x200?text=Image1",
@@ -89,7 +92,11 @@ fun MainScreen(navController: NavController){
         }
         isLoading = false
     }
-    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(userInfo) {
+        if(!userInfo.userId.isNullOrBlank() && userInfo.editYn == false){
+            isOpenAlert = true
+        }
+    }
 
     Column(modifier = Modifier
         .fillMaxSize()
@@ -248,6 +255,18 @@ fun MainScreen(navController: NavController){
         cancelText = "취소",
         onConfirm = { centerInfo = selectedCenter.copy() },
         onCancel = { isOpenSelectConfirm = false }
+    )
+    CommonAlertDialog(
+        isShow = isOpenAlert,
+        onDismiss = {
+            isOpenAlert = false
+            navController.navigate("user_profile_screen") {
+                popUpTo("main_screen") { inclusive = true }
+            }
+        },
+        title = "알림",
+        text = "최초 프로필 변경이 필요합니다.",
+        buttonText = "확인"
     )
     CommonProgress(isLoading = isLoading);
 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -94,7 +95,60 @@ fun CommonConfirmDialog(
         )
     }
 }
-
+@Composable
+fun CommonProgressConfrimDialog(
+    isShow: Boolean,
+    onDismiss: () -> Unit,
+    title: String = "",
+    text: String = "",
+    confirmText: String = "확인",
+    cancelText: String = "취소",
+    onConfirm: (() -> Unit)? = null,
+    onCancel: (() -> Unit)? = null,
+    isLoading: Boolean = false,
+) {
+    if (isShow) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(title) },
+            text = {
+                Box(Modifier.fillMaxWidth()) {
+                    Text(text)
+                    if (isLoading) {
+                        Box(
+                            Modifier
+                                .matchParentSize()
+                                .background(Color(0x66000000)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onConfirm?.invoke()
+                        onDismiss()
+                    }
+                ) {
+                    Text(confirmText)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        onCancel?.invoke()
+                        onDismiss()
+                    }
+                ) {
+                    Text(cancelText)
+                }
+            }
+        )
+    }
+}
 @Composable
 fun CommonCenterSelectDialog(
     isShow: Boolean,

@@ -34,8 +34,8 @@ import com.zikkeunzikkeun.rocktalk.R
 import com.zikkeunzikkeun.rocktalk.api.callUpdateUserInfoCloudFunction
 import com.zikkeunzikkeun.rocktalk.api.clearUserInfoCache
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
+import com.zikkeunzikkeun.rocktalk.api.uploadMediaFileAndGetUrl
 import com.zikkeunzikkeun.rocktalk.util.getUserId
-import com.zikkeunzikkeun.rocktalk.api.uploadProfileImageAndGetUrl
 import com.zikkeunzikkeun.rocktalk.data.AlertDialogData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
@@ -193,9 +193,7 @@ fun UserProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 입력 필드 구성
             InputField("닉네임", nickname) { nickname = it }
-//            InputField("나이", age) { age = it }
             CommonRadioGroup(
                 items = listOf("남자", "여자"),
                 selectedItem = gender,
@@ -220,7 +218,6 @@ fun UserProfileScreen(
         }
     }
 
-    // loading composable
     CommonProgress(isLoading = isLoading);
     // dialog composable
     CommonAlertDialog(
@@ -250,7 +247,7 @@ fun UserProfileScreen(
             coroutineScope.launch {
                 isLoading = true
                 val imageUrl = selectedUri?.let {
-                    uploadProfileImageAndGetUrl(it, "profile", "img")
+                    uploadMediaFileAndGetUrl(context, it, "profile", "img")
                 }
                 val userInfoData = UserInfoData(
                     userId = userId,

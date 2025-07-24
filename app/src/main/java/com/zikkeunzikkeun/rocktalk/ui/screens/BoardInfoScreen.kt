@@ -57,7 +57,6 @@ fun BoardInfoScreen(
 //            .background(color = Color(0xFFF8F6F7)) // 전체 연핑크 배경
             .fillMaxSize()
     ) {
-        // 상단 연녹색 영역
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -135,24 +134,25 @@ fun BoardInfoScreen(
             }
         }
 
-        // 본문 영역
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp, vertical = 20.dp)
-                .fillMaxWidth()
-        ) {
-            Box(
+        if(!isLoading){
+            Column(
                 modifier = Modifier
-                    .background(Color.White, shape = RoundedCornerShape(16.dp))
-                    .border(1.dp, Color(0xFFE0E0E0), shape = RoundedCornerShape(16.dp))
-                    .padding(18.dp)
+                    .padding(horizontal = 24.dp, vertical = 20.dp)
+                    .fillMaxWidth()
             ) {
-                Column {
-                    Text(
-                        boardInfo.boardContent,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF222222)
-                    )
+                Box(
+                    modifier = Modifier
+                        .background(Color.White, shape = RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFFE0E0E0), shape = RoundedCornerShape(16.dp))
+                        .padding(18.dp)
+                ) {
+                    Column {
+                        Text(
+                            boardInfo.boardContent,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF222222)
+                        )
+                    }
                 }
             }
         }
