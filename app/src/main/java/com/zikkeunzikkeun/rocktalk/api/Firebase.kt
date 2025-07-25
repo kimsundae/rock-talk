@@ -215,7 +215,7 @@ suspend fun getBoardById(boardId: String): BoardInfoData? = withContext(Dispatch
     }
 }
 
-suspend fun getBoardList(boardType: String, centerId: String): List<BoardInfoData> = withContext(Dispatchers.IO) {
+suspend fun getBoardList(boardType: String?, centerId: String): List<BoardInfoData> = withContext(Dispatchers.IO) {
     return@withContext try {
         val data = mapOf(
             "boardType" to boardType,

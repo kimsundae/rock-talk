@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,16 +33,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import com.zikkeunzikkeun.rocktalk.api.getBoardById
 import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
+import com.zikkeunzikkeun.rocktalk.util.formatTimeStampToYYYYMMDD
 
 @Composable
 fun BoardInfoScreen(
     navController: NavController,
-    boardId:String?,
-    userId:String?
+    boardId:String?
 ){
     var boardInfo by remember { mutableStateOf<BoardInfoData>(BoardInfoData()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -84,7 +86,6 @@ fun BoardInfoScreen(
                 }
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // 제목, 등록일시, 등록자
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -113,7 +114,7 @@ fun BoardInfoScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            boardInfo.createDate,
+                            formatTimeStampToYYYYMMDD(boardInfo.createDate),
                             style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF6C7A89))
                         )
                     }
@@ -155,7 +156,19 @@ fun BoardInfoScreen(
                     }
                 }
             }
+        }else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(64.dp),
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+            }
         }
-        CommonProgress(isLoading = isLoading)
     }
 }

@@ -103,17 +103,15 @@ fun RockTalkApp() {
                 }
 
                 composable(
-                    route = "board_info_screen?userId={userId}&boardId={boardId}",
+                    route = "board_info_screen?boardId={boardId}",
                     arguments = listOf(
-                        navArgument("userId") { type = NavType.StringType; },
                         navArgument("boardId") { type = NavType.StringType; }
                     )
                 ){
                         backStackEntry ->
                     BoardInfoScreen(
                         navController,
-                        boardId = backStackEntry.arguments?.getString("boardId"),
-                        userId = backStackEntry.arguments?.getString("userId"),
+                        boardId = backStackEntry.arguments?.getString("boardId")
                     )
                 }
 

@@ -1,4 +1,4 @@
-import android.util.Log
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import java.time.LocalDate
 import java.time.YearMonth
@@ -32,7 +33,6 @@ import com.zikkeunzikkeun.rocktalk.api.getUserInfo
 import com.zikkeunzikkeun.rocktalk.data.RecordInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
-import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.components.RecordInfoDialog
 import com.zikkeunzikkeun.rocktalk.util.getUserId
 import kotlinx.coroutines.launch
@@ -282,9 +282,23 @@ fun CalendarMonthView(
                     }
                 }
             }
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.width(64.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                }
+            }
+
         }
     }
-    CommonProgress(isLoading = isLoading)
     // 기록 info 전달
     RecordInfoDialog(
         isEdit = selectedRecordInfo?.let { it.recordContent.isNotBlank() } == true,

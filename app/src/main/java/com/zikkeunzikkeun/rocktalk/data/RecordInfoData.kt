@@ -11,6 +11,7 @@ data class RecordInfoData(
     val userId:String = "",
     val nickname:String = "",
     val recordMediaUri:String = "",
+    val thumbnailUri:String = "",
     val recordContent:String = "",
     val isBoardShare: Boolean = true,
     val createDate:String = ""

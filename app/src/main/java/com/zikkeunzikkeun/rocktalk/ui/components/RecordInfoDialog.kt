@@ -40,6 +40,7 @@ import com.zikkeunzikkeun.rocktalk.data.AlertDialogData
 import com.zikkeunzikkeun.rocktalk.data.RecordInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.theme.Orange40
+import com.zikkeunzikkeun.rocktalk.util.generateThumbnailFromVideo
 import kotlinx.coroutines.launch
 
 
@@ -158,7 +159,10 @@ fun RecordInfoContent(
                 .aspectRatio(0.8f)
                 .clip(RoundedCornerShape(24.dp))
                 .background(Color(0xFFF7F8F1))
-                .clickable { pickMediaLauncher.launch("image/* video/*") }
+                .clickable {
+                    if(!recordInfoData.recordId.isBlank()) return@clickable
+                    pickMediaLauncher.launch("image/* video/*")
+                }
                 .border(
                     width = 2.dp,
                     color = Color(0xFFE1E1E1),
@@ -293,10 +297,18 @@ fun RecordInfoContent(
                             "records",
                             fileType
                         )
-                    } ?: recordInfoData.recordMediaUri // 새 미디어 없으면 기존 URL 유지
+                    } ?: recordInfoData.recordMediaUri
+
+                    val thumbnailUrl = if (isVideo && selectedMediaUri != null) {
+                        val thumbUri = generateThumbnailFromVideo(context, selectedMediaUri!!)
+                        thumbUri?.let {
+                            uploadMediaFileAndGetUrl(context, it, "records", "img")
+                        }
+                    } else null
 
                     val newRecordInfo = recordInfoData.copy(
                         recordMediaUri = mediaUrl,
+                        thumbnailUri = thumbnailUrl ?: "",
                         userId = userInfo?.userId ?: "",
                         nickname = userInfo?.nickname ?: "",
                         centerId = userInfo?.centerId ?: ""

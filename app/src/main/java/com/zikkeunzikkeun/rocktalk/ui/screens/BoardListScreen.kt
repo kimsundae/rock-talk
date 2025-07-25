@@ -112,7 +112,7 @@ fun BoardListScreen(
                         elevation = CardDefaults.cardElevation(2.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         onClick = {
-                            navController.navigate("board_info_screen?userId=${userId}&boardId=${boardInfoData.boardId}") {
+                            navController.navigate("board_info_screen?boardId=${boardInfoData.boardId}") {
                                 popUpTo("board_list_screen") { inclusive = true }
                             }
                         }

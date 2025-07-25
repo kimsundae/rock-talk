@@ -1,6 +1,5 @@
 package com.zikkeunzikkeun.rocktalk.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,6 +26,8 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import com.zikkeunzikkeun.rocktalk.R
@@ -43,52 +44,78 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import com.zikkeunzikkeun.rocktalk.api.callGetRecordList
+import com.zikkeunzikkeun.rocktalk.api.getBoardList
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
+import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
 import com.zikkeunzikkeun.rocktalk.data.CenterInfoData
+import com.zikkeunzikkeun.rocktalk.data.RecordInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonCenterSelectDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonConfirmDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.components.InfoCard
+import com.zikkeunzikkeun.rocktalk.ui.components.RecordInfoDialog
 import com.zikkeunzikkeun.rocktalk.util.getUserId
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(navController: NavController){
     var userInfo by remember { mutableStateOf<UserInfoData>(UserInfoData()) }
     var centerInfo by remember { mutableStateOf(CenterInfoData())}
+    var recordInfoList by remember {mutableStateOf<List<RecordInfoData>>(emptyList())}
+    var boardInfoList by remember {mutableStateOf<List<BoardInfoData>>(emptyList())}
     var selectedCenter by remember { mutableStateOf(CenterInfoData())}
+    var selectedRecordInfo by remember { mutableStateOf<RecordInfoData?>(null)}
     var isOpenCenterDialog by remember { mutableStateOf(false) }
     var isOpenSelectConfirm by remember { mutableStateOf(false) }
+    var isOpenRecordInfoModal by remember { mutableStateOf(false) }
     var isOpenAlert by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    val imageUrls = listOf(
-        "https://via.placeholder.com/300x200?text=Image1",
-        "https://via.placeholder.com/300x200?text=Image2",
-        "https://via.placeholder.com/300x200?text=Image3",
-        "https://via.placeholder.com/300x200?text=Image4",
-        "https://via.placeholder.com/300x200?text=Image5"
-    )
 
+    val hasMediaRecord = recordInfoList.filter {
+        val uri = it.recordMediaUri?.lowercase() ?: ""
+        uri.contains(".jpg") || uri.contains(".jpeg") ||
+        uri.contains(".png") || uri.contains(".webp") || uri.contains(".gif") || it.thumbnailUri.isNotBlank()
+    }
+    val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(
         initialPage = 0,
-        pageCount = { imageUrls.size }
+        pageCount = { hasMediaRecord.size }
     )
-    LaunchedEffect(Unit) {
+
+    val onSearch: suspend (String) -> Unit = { centerId ->
+        coroutineScope.launch {
+            recordInfoList = callGetRecordList(centerId = centerId)
+            boardInfoList = getBoardList(boardType = null, centerId = centerId)
+        }
+    }
+    LaunchedEffect(centerInfo) {
         isLoading = true
+
         val userId = getUserId()
         if (!userId.isNullOrEmpty()) {
             val userInfoData = getUserInfo(userId) ?: UserInfoData()
             userInfo = userInfoData
-            centerInfo = CenterInfoData(
-                centerId = userInfoData.centerId,
-                centerName = userInfoData.centerName
-            )
+
+            if (selectedCenter.centerId.isBlank()) {
+                centerInfo = CenterInfoData(
+                    centerId = userInfoData.centerId,
+                    centerName = userInfoData.centerName
+                )
+                onSearch(userInfoData.centerId)
+            } else {
+                centerInfo = selectedCenter.copy()
+                onSearch(selectedCenter.centerId)
+            }
         }
         isLoading = false
     }
@@ -97,6 +124,20 @@ fun MainScreen(navController: NavController){
             isOpenAlert = true
         }
     }
+
+    val noticeList: List<BoardInfoData> = boardInfoList
+        .filter { it.boardType == "0" }
+        .take(4)
+        .map {
+            if (it.boardTitle.isBlank()) it.copy(boardTitle = "제목 없음") else it
+        }
+
+    val togetherList: List<BoardInfoData> = boardInfoList
+        .filter { it.boardType == "1" }
+        .take(4)
+        .map {
+            if (it.boardTitle.isBlank()) it.copy(boardTitle = "제목 없음") else it
+        }
 
     Column(modifier = Modifier
         .fillMaxSize()
@@ -165,15 +206,41 @@ fun MainScreen(navController: NavController){
                 .fillMaxWidth()
                 .height(160.dp)
         ) { page ->
+            val record = hasMediaRecord.getOrNull(page)
+            val mediaUri = if(record?.thumbnailUri.isNullOrBlank()) record?.recordMediaUri else record?.thumbnailUri
+
+            val painter = rememberAsyncImagePainter(mediaUri)
+            val painterState = painter.state
+
             Card(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(12.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable {
+                        selectedRecordInfo = record
+                        isOpenRecordInfoModal = true
+                    },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
-                Image(
-                    painter = rememberAsyncImagePainter(imageUrls[page]),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Image(
+                        painter = painter,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    if (painterState is AsyncImagePainter.State.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(36.dp),
+                            strokeWidth = 3.dp,
+                            color = Color.White
+                        )
+                    }
+                }
             }
         }
 
@@ -183,7 +250,7 @@ fun MainScreen(navController: NavController){
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            repeat(imageUrls.size) { i ->
+            repeat(hasMediaRecord.size) { i ->
                 val selected = i == pagerState.currentPage
                 Box(
                     modifier = Modifier
@@ -200,6 +267,7 @@ fun MainScreen(navController: NavController){
         Spacer(modifier = Modifier.height(24.dp))
 
         InfoCard(
+            navController,
             title = "공지사항",
             icon = Icons.Default.Notifications,
             onClickIcon = {
@@ -207,18 +275,13 @@ fun MainScreen(navController: NavController){
                     popUpTo("main_screen") { inclusive = true }
                 }
             },
-            items = listOf(
-                "운영시간 안내! 이번 주 운영 일정 확인하세요!",
-                "이벤트: 이 달의 챌린지 완료하고 선물 받자!",
-                "새로운 장비! 나이로이벤트 무료 개방 안내",
-                "주의공지! 사고 예방을 위한 기본 규칙"
-            )
+            items = if (noticeList.isEmpty()) listOf(BoardInfoData(boardTitle = "게시글이 없습니다.")) else noticeList
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 6. 함께해요 카드
         InfoCard(
+            navController,
             title = "함께해요",
             icon = Icons.Default.Face,
             onClickIcon = {
@@ -226,12 +289,7 @@ fun MainScreen(navController: NavController){
                     popUpTo("main_screen") { inclusive = true }
                 }
             },
-            items = listOf(
-                "주말 모임! 도쿄와 오븐 루트 클라이머 같이 하실 분",
-                "참여는 O.K! 지원자 용무가 많이 오릅니다",
-                "미트업 부트캠프합니다! 토욜 점심에 모일까요?",
-                "초보 환영! OCR부터 크럭스 구간 완등 함께 원해요"
-            )
+            items = if (togetherList.isEmpty()) listOf(BoardInfoData(boardTitle = "게시글이 없습니다.")) else togetherList
         )
     }
     CommonCenterSelectDialog(
@@ -267,6 +325,14 @@ fun MainScreen(navController: NavController){
         title = "알림",
         text = "최초 프로필 변경이 필요합니다.",
         buttonText = "확인"
+    )
+    RecordInfoDialog(
+        isEdit = true,
+        userInfo = userInfo,
+        recordInfo = selectedRecordInfo,
+        isShow = isOpenRecordInfoModal,
+        onDismiss = { isOpenRecordInfoModal = false },
+        onSearch = {}
     )
     CommonProgress(isLoading = isLoading);
 }

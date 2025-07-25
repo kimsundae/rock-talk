@@ -23,9 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.zikkeunzikkeun.rocktalk.data.BoardInfoData
 
 @Composable
-fun InfoCard(title: String, icon: ImageVector, items: List<String>, onClickIcon: ()->Unit) {
+fun InfoCard(navController: NavController, title: String, icon: ImageVector, items: List<BoardInfoData>, onClickIcon: ()->Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -56,19 +58,20 @@ fun InfoCard(title: String, icon: ImageVector, items: List<String>, onClickIcon:
 
             items.forEach {
                 Text(
-                    text = "• $it",
+                    text = "• ${it.boardTitle}",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(vertical = 2.dp)
+                    .clickable{
+                        if (it.boardId.isNotBlank()) {
+                            navController.navigate("board_info_screen?boardId=${it.boardId}") {
+                                popUpTo("board_list_screen") { inclusive = true }
+                            }
+                        }
+                    }
                 )
             }
         }
     }
 }
 
-@Composable
-fun BoardCard(
-
-){
-
-}
 
