@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import android.content.Context
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import androidx.compose.runtime.setValue
@@ -32,6 +33,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.media3.ui.PlayerView
+import coil.compose.AsyncImagePainter
 import com.zikkeunzikkeun.rocktalk.api.callSaveRecord
 import com.zikkeunzikkeun.rocktalk.api.uploadMediaFileAndGetUrl
 import com.zikkeunzikkeun.rocktalk.data.AlertDialogData
@@ -47,9 +49,11 @@ fun RecordInfoDialog(
     userInfo: UserInfoData?,
     recordInfo: RecordInfoData?,
     isShow: Boolean,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSearch: () -> Unit
 ) {
     if (isShow) {
+        Log.d("recordInfo", recordInfo.toString())
         Dialog(onDismissRequest = onDismiss) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
@@ -64,7 +68,8 @@ fun RecordInfoDialog(
                     isEdit = isEdit,
                     onDismiss = onDismiss,
                     userInfo = userInfo,
-                    recordInfo = recordInfo
+                    recordInfo = recordInfo,
+                    onSearch = onSearch
                 )
             }
         }
@@ -76,8 +81,11 @@ fun RecordInfoContent(
     recordInfo: RecordInfoData?,
     userInfo: UserInfoData?,
     isEdit: Boolean,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSearch: () -> Unit
 ) {
+    val MAX_SIZE_MB = 45
+    val MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
     // 새로 선택한 미디어
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
     // 폼 입력 상태: recordInfo 초기값 반영
@@ -98,7 +106,23 @@ fun RecordInfoContent(
 
     val pickMediaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri -> selectedMediaUri = uri }
+    ) { uri ->
+        uri?.let {
+            val fileSize = getFileSizeFromDescriptor(context, it)
+            if (fileSize > MAX_SIZE_BYTES) {
+                dialogData = AlertDialogData(
+                    title = "파일 용량 초과",
+                    text = "45MB 이하의 파일만 업로드할 수 있습니다.",
+                    buttonText = "확인"
+                ) {
+                    isShowDialog = false
+                }
+                isShowDialog = true
+            } else {
+                selectedMediaUri = it
+            }
+        }
+    }
 
     // 미디어 타입 판별 선택된 새 미디어가 있을 때만 체크
     val selectedMimeType = selectedMediaUri?.let { getMimeType(context, it) }
@@ -157,17 +181,29 @@ fun RecordInfoContent(
                     }
                 }
                 !recordInfoData.recordMediaUri.isNullOrBlank() -> {
-                    if (recordInfoData.recordMediaUri.endsWith(".mp4") || recordInfoData.recordMediaUri.contains("/videos/")) {
+                    if (recordInfoData.recordMediaUri.endsWith(".mp4") || recordInfoData.recordMediaUri.contains("video")) {
                         // Video
                         VideoPlayerPreview(url = recordInfoData.recordMediaUri)
                     } else {
-                        // Image
-                        Image(
-                            painter = rememberAsyncImagePainter(recordInfoData.recordMediaUri),
-                            contentDescription = "기존 기록 미디어",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        val painter = rememberAsyncImagePainter(recordInfoData.recordMediaUri)
+                        val state = painter.state
+
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painter,
+                                contentDescription = "기존 기록 미디어",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+
+                            if (state is AsyncImagePainter.State.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(48.dp),
+                                    color = Color.Gray,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                        }
                     }
                 }
                 else -> {
@@ -222,18 +258,20 @@ fun RecordInfoContent(
             }
         }
         Spacer(Modifier.height(28.dp))
-        Button(
-            onClick = { isOpenConfirmDialog = true },
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Orange40,
-                contentColor = Color.White
-            )
-        ) {
-            Text("저장", style = MaterialTheme.typography.titleMedium)
+        if(recordInfoData.recordId.isBlank()) {
+            Button(
+                onClick = { isOpenConfirmDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Orange40,
+                    contentColor = Color.White
+                )
+            ) {
+                Text("저장", style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
     CommonProgressConfrimDialog(
@@ -272,6 +310,7 @@ fun RecordInfoContent(
                             buttonText = "확인"
                         ) {
                             isShowDialog = false
+                            onSearch()
                             onDismiss()
                         }
                         isShowDialog = true
@@ -350,4 +389,14 @@ private fun getMimeType(context: Context, uri: Uri): String? {
         ?: MimeTypeMap.getFileExtensionFromUrl(uri.toString())?.let {
             MimeTypeMap.getSingleton().getMimeTypeFromExtension(it)
         }
+}
+
+fun getFileSizeFromDescriptor(context: Context, uri: Uri): Long {
+    val cursor = context.contentResolver.query(uri, null, null, null, null)
+    cursor?.use {
+        val sizeIndex = it.getColumnIndex(android.provider.OpenableColumns.SIZE)
+        it.moveToFirst()
+        return it.getLong(sizeIndex)
+    }
+    return 0L
 }

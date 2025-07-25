@@ -31,9 +31,11 @@ import com.zikkeunzikkeun.rocktalk.api.callGetRecordList
 import com.zikkeunzikkeun.rocktalk.api.getUserInfo
 import com.zikkeunzikkeun.rocktalk.data.RecordInfoData
 import com.zikkeunzikkeun.rocktalk.data.UserInfoData
+import com.zikkeunzikkeun.rocktalk.ui.components.CommonAlertDialog
 import com.zikkeunzikkeun.rocktalk.ui.components.CommonProgress
 import com.zikkeunzikkeun.rocktalk.ui.components.RecordInfoDialog
 import com.zikkeunzikkeun.rocktalk.util.getUserId
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -44,8 +46,21 @@ fun RecordScreen(
     var recordList by remember { mutableStateOf<List<RecordInfoData>>(emptyList()) }
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     var isLoading by remember { mutableStateOf(false) }
+    var isOpenAlert by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
-    Log.i("recordscreen", recordList.toString())
+    val onSearch: () -> Unit = {
+        coroutineScope.launch {
+            isLoading = true
+            val result = callGetRecordList(userInfo.userId)
+            val localRecordList = result.map { record ->
+                record.copy(createDate = record.getLocalDateString() ?: record.createDate)
+            }
+            recordList = localRecordList
+            isLoading = false
+        }
+    }
+
     LaunchedEffect(Unit) {
         isLoading = true
         val userId = getUserId()
@@ -60,6 +75,13 @@ fun RecordScreen(
         }
         isLoading = false
     }
+
+    LaunchedEffect(userInfo) {
+        if(!userInfo.userId.isNullOrBlank() && userInfo.editYn == false){
+            isOpenAlert = true
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -110,7 +132,20 @@ fun RecordScreen(
             stoneRes = R.drawable.rock_icon,
             isLoading = isLoading,
             onPrevMonth = { currentMonth = currentMonth.minusMonths(1) },
-            onNextMonth = { currentMonth = currentMonth.plusMonths(1) }
+            onNextMonth = { currentMonth = currentMonth.plusMonths(1) },
+            onSearch = onSearch
+        )
+        CommonAlertDialog(
+            isShow = isOpenAlert,
+            onDismiss = {
+                isOpenAlert = false
+                navController.navigate("user_profile_screen") {
+                    popUpTo("main_screen") { inclusive = true }
+                }
+            },
+            title = "알림",
+            text = "최초 프로필 변경이 필요합니다.",
+            buttonText = "확인"
         )
     }
 }
@@ -124,7 +159,8 @@ fun CalendarMonthView(
     stoneRes: Int,
     isLoading: Boolean,
     onPrevMonth: () -> Unit,
-    onNextMonth: () -> Unit
+    onNextMonth: () -> Unit,
+    onSearch: () -> Unit
 ) {
     val daysOfWeek = listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
     val firstDayOfMonth = currentMonth.atDay(1)
@@ -255,6 +291,7 @@ fun CalendarMonthView(
         userInfo = userInfo,
         recordInfo = selectedRecordInfo,
         isShow = isOpenRecordInfoModal,
-        onDismiss = { isOpenRecordInfoModal = false }
+        onDismiss = { isOpenRecordInfoModal = false },
+        onSearch = onSearch
     )
 }
